@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: sachcu-mongodb
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: sachcu
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: sachcu-redis
+    ports:
+      - '6379:6379'
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
