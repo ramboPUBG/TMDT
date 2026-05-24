@@ -1,0 +1,96 @@
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Book, BookDocument, BookStatus } from './schemas/book.schema';
+import { BookFilterDto } from './dto/book-filter.dto';
+import { CreateBookDto } from './dto/create-book.dto';
+import { PaginatedResult } from '../../common/dto/pagination.dto';
+
+@Injectable()
+export class BooksService {
+  constructor(@InjectModel(Book.name) private bookModel: Model<BookDocument>) {}
+
+  async findAll(filterDto: BookFilterDto): Promise<PaginatedResult<Book>> {
+    const {
+      page = 1,
+      limit = 20,
+      q,
+      categoryId,
+      minPrice,
+      maxPrice,
+      condition,
+      author,
+      publisher,
+      sort,
+    } = filterDto;
+
+    const query: any = { status: BookStatus.APPROVED };
+
+    if (q) {
+      query.$text = { $search: q };
+    }
+
+    if (categoryId) {
+      query.categoryId = categoryId;
+    }
+
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      query.sellingPrice = {};
+      if (minPrice !== undefined) query.sellingPrice.$gte = minPrice;
+      if (maxPrice !== undefined) query.sellingPrice.$lte = maxPrice;
+    }
+
+    if (condition) {
+      query.condition = condition;
+    }
+
+    if (author) {
+      query.author = { $regex: author, $options: 'i' };
+    }
+
+    if (publisher) {
+      query.publisher = { $regex: publisher, $options: 'i' };
+    }
+
+    let sortOptions: any = { createdAt: -1 };
+    if (sort === 'price_asc') {
+      sortOptions = { sellingPrice: 1 };
+    } else if (sort === 'price_desc') {
+      sortOptions = { sellingPrice: -1 };
+    } else if (sort === 'popular') {
+      sortOptions = { viewCount: -1 };
+    } else if (sort === 'newest') {
+      sortOptions = { createdAt: -1 };
+    }
+
+    const total = await this.bookModel.countDocuments(query);
+    const skip = (page - 1) * limit;
+
+    const items = await this.bookModel
+      .find(query)
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limit)
+      .populate('sellerId', 'name avatar rating')
+      .populate('categoryId', 'name slug')
+      .exec();
+
+    return new PaginatedResult(items, total, page, limit);
+  }
+
+  async create(createBookDto: CreateBookDto, sellerId: string): Promise<Book> {
+    const slug = createBookDto.title
+      .toLowerCase()
+      .replace(/[^a-z0-9\u00C0-\u024F\u1E00-\u1EFF]+/gi, '-') // support Vietnamese characters partially or rely on simple dash
+      .replace(/(^-|-$)+/g, '') + '-' + Date.now();
+
+    const createdBook = new this.bookModel({
+      ...createBookDto,
+      sellerId,
+      slug,
+      status: BookStatus.PENDING, // Admin must approve
+    });
+
+    return createdBook.save();
+  }
+}
