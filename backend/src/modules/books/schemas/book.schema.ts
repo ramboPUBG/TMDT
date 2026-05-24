@@ -133,7 +133,7 @@ BookSchema.index({ status: 1, createdAt: -1 });
 BookSchema.index({ slug: 1 }, { unique: true });
 BookSchema.index(
   { title: 'text', author: 'text', description: 'text', tags: 'text' },
-  { weights: { title: 10, author: 5, tags: 3, description: 1 }, name: 'book_text_search' },
+  { weights: { title: 10, author: 5, tags: 3, description: 1 }, name: 'book_text_search', default_language: 'none', language_override: 'dummy_language' },
 );
 BookSchema.index({ sellingPrice: 1 });
 BookSchema.index({ condition: 1 });
