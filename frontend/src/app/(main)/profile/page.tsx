@@ -80,7 +80,7 @@ function SectionTitle({
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { isAuthenticated, user, updateUser } = useAuthStore();
+  const { hasHydrated, isAuthenticated, user, updateUser } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState("");
   const [message, setMessage] = useState("");
@@ -117,6 +117,10 @@ export default function ProfilePage() {
   }, [user]);
 
   useEffect(() => {
+    if (!hasHydrated) {
+      return;
+    }
+
     if (!isAuthenticated) {
       router.replace("/login?redirect=/profile");
       return;
@@ -152,7 +156,7 @@ export default function ProfilePage() {
     };
 
     fetchAccount();
-  }, [isAuthenticated, router, updateUser]);
+  }, [hasHydrated, isAuthenticated, router, updateUser]);
 
   const notify = (text: string) => {
     setMessage(text);
