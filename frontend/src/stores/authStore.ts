@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
+const createNoopStorage = () => ({
+  getItem: () => null,
+  setItem: () => undefined,
+  removeItem: () => undefined,
+});
+
 export type UserRole = 'buyer' | 'seller' | 'inspector' | 'admin';
 
 export interface User {
@@ -71,7 +77,9 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'sachcu-auth-storage',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() =>
+        typeof window !== 'undefined' ? localStorage : createNoopStorage()
+      ),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },
