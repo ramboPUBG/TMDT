@@ -19,6 +19,7 @@ import {
   CreateAddressDto,
   UpdateAddressDto,
   UpgradeToSellerDto,
+  UpdateSellerProfileDto,
   AdminQueryUsersDto,
 } from './dto';
 import type { UserDocument } from './schemas/user.schema';
@@ -31,7 +32,7 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  async getMe(@CurrentUser() user: UserDocument) {
+  getMe(@CurrentUser() user: UserDocument) {
     return { success: true, data: user };
   }
 
@@ -57,6 +58,17 @@ export class UsersController {
       dto.description,
     );
     return { success: true, data: user, message: 'Đã nâng cấp lên người bán' };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('seller', 'admin')
+  @Patch('me/seller-profile')
+  async updateSellerProfile(
+    @CurrentUser('_id') userId: string,
+    @Body() dto: UpdateSellerProfileDto,
+  ) {
+    const user = await this.usersService.updateSellerProfile(userId, dto);
+    return { success: true, data: user, message: 'Đã cập nhật hồ sơ bán hàng' };
   }
 
   // ========== SELLER PUBLIC PROFILE ==========

@@ -5,25 +5,19 @@ import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { BookCard } from "@/components/ui/BookCard";
-import api from "@/lib/api";
-
-// Mock Categories (still mocked for UI until we build Category API fully)
-const mockCategories = [
-  { id: "1", name: "Văn học", count: 1250 },
-  { id: "2", name: "Kinh tế", count: 840 },
-  { id: "3", name: "Tâm lý - Kỹ năng", count: 920 },
-  { id: "4", name: "Nuôi dạy con", count: 450 },
-  { id: "5", name: "Sách thiếu nhi", count: 1560 },
-  { id: "6", name: "Lịch sử", count: 320 },
-  { id: "7", name: "Ngoại ngữ", count: 780 },
-  { id: "8", name: "Truyện tranh", count: 2100 },
-];
+import api from "@/services/api";
+import { useFetch } from "@/hooks/useFetch";
+import { Book, PaginatedBooks, getBookImageUrl, Category, ApiResponse } from "@/types";
 
 function BooksContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
   
+  const { data: categoriesResult } = useFetch<ApiResponse<Category[]>>('/categories');
+  const categories = categoriesResult?.data || [];
+  
+  const qParam = searchParams.get("q") || "";
   const categoryParam = searchParams.get("category") || "";
   const conditionParam = searchParams.get("condition") || "";
   const sortParam = searchParams.get("sort") || "newest";
@@ -33,21 +27,20 @@ function BooksContent() {
   const [author, setAuthor] = useState(searchParams.get("author") || "");
   const [publisher, setPublisher] = useState(searchParams.get("publisher") || "");
 
-  const [books, setBooks] = useState<any[]>([]);
+  const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const activeCategory = mockCategories.find(c => c.id === categoryParam) || null;
+  const activeCategory = categories.find(c => c._id === categoryParam) || null;
 
   useEffect(() => {
     const fetchBooks = async () => {
       setLoading(true);
       try {
         const query = searchParams.toString();
-        const { data } = await api.get(`/books?${query}`);
-        setBooks(data.data || []);
+        const result = await api.get(`/books?${query}`) as PaginatedBooks;
+        setBooks(result.data || []);
       } catch (error) {
         console.error("Failed to fetch books", error);
-        // Fallback to empty array if API fails
         setBooks([]);
       } finally {
         setLoading(false);
@@ -83,7 +76,11 @@ function BooksContent() {
           <Link href="/" className="hover:text-primary">Trang chủ</Link>
           <span>/</span>
           <span className="text-foreground font-medium">
-            {activeCategory ? activeCategory.name : "Tất cả sách"}
+            {qParam
+              ? `Kết quả: "${qParam}"`
+              : activeCategory
+                ? activeCategory.name
+                : "Tất cả sách"}
           </span>
         </div>
 
@@ -104,14 +101,14 @@ function BooksContent() {
                 >
                   Tất cả danh mục
                 </button>
-                {mockCategories.map(cat => (
+                {categories.map(cat => (
                   <button 
-                    key={cat.id} 
-                    onClick={() => updateFilter("category", cat.id)}
-                    className={`text-left text-sm py-1.5 flex items-center justify-between transition-colors ${categoryParam === cat.id ? 'text-primary font-bold' : 'text-muted-foreground hover:text-primary'}`}
+                    key={cat._id} 
+                    onClick={() => updateFilter("category", cat._id)}
+                    className={`text-left text-sm py-1.5 flex items-center justify-between transition-colors ${categoryParam === cat._id ? 'text-primary font-bold' : 'text-muted-foreground hover:text-primary'}`}
                   >
                     <span>{cat.name}</span>
-                    <span className="text-xs bg-muted px-2 py-0.5 rounded-full">{cat.count}</span>
+                    <span className="text-xs bg-muted px-2 py-0.5 rounded-full">{cat.count || 0}</span>
                   </button>
                 ))}
               </div>
@@ -210,7 +207,11 @@ function BooksContent() {
             {/* Top Toolbar */}
             <div className="bg-white p-4 rounded-2xl border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <h1 className="text-xl font-bold text-foreground">
-                {activeCategory ? `Sách ${activeCategory.name}` : "Tất cả sách"}
+                {qParam
+                  ? `Tìm kiếm: "${qParam}"`
+                  : activeCategory
+                    ? `Sách ${activeCategory.name}`
+                    : "Tất cả sách"}
               </h1>
               
               <div className="flex items-center gap-3">
@@ -235,8 +236,18 @@ function BooksContent() {
               </div>
             ) : books.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
-                {books.map((book: any) => (
-                  <BookCard key={book._id} {...book} id={book._id} sellerName={book.sellerId?.name || 'Ẩn danh'} imageUrl={book.images?.[0]?.url || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800'} />
+                {books.map((book) => (
+                  <BookCard
+                    key={book._id}
+                    id={book._id}
+                    title={book.title}
+                    author={book.author}
+                    price={book.sellingPrice}
+                    originalPrice={book.originalPrice}
+                    condition={book.condition}
+                    sellerName={book.sellerId?.fullName || book.sellerId?.name || 'Ẩn danh'}
+                    imageUrl={getBookImageUrl(book, 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800')}
+                  />
                 ))}
               </div>
             ) : (

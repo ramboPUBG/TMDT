@@ -2,14 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import api from "@/lib/api";
-import { useAuthStore } from "@/stores/authStore";
+import api from "@/services/api";
+import { useAuthStore, User } from "@/stores/authStore";
 
 const loginSchema = z.object({
   email: z.string().email("Email không hợp lệ"),
@@ -18,8 +19,27 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-export default function LoginPage() {
+interface AuthResponse {
+  success: boolean;
+  data: {
+    user: User;
+    accessToken: string;
+    refreshToken: string;
+  };
+}
+
+function getErrorMessage(err: unknown, fallback: string) {
+  if (typeof err === "object" && err !== null && "response" in err) {
+    const response = (err as { response?: { data?: { message?: string } } }).response;
+    return response?.data?.message || fallback;
+  }
+  return fallback;
+}
+
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect") || "/";
   const setAuth = useAuthStore((state) => state.setAuth);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -36,7 +56,7 @@ export default function LoginPage() {
     try {
       setIsLoading(true);
       setError("");
-      const response: any = await api.post("/auth/login", data);
+      const response = await api.post("/auth/login", data) as AuthResponse;
       
       if (response.success) {
         setAuth(
@@ -44,10 +64,10 @@ export default function LoginPage() {
           response.data.accessToken,
           response.data.refreshToken
         );
-        router.push("/");
+        router.push(redirect);
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Đăng nhập thất bại");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Đăng nhập thất bại"));
     } finally {
       setIsLoading(false);
     }
@@ -108,5 +128,13 @@ export default function LoginPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-8">Đang tải...</div>}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

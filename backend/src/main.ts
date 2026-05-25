@@ -1,8 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { setServers } from 'node:dns';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
+  setServers(['8.8.8.8', '1.1.1.1']);
+
   const app = await NestFactory.create(AppModule);
 
   // Global prefix
@@ -32,4 +35,4 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`🚀 SachCu Backend running on http://localhost:${port}`);
 }
-bootstrap();
+void bootstrap();

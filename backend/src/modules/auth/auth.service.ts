@@ -3,11 +3,15 @@ import {
   UnauthorizedException,
   BadRequestException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
-import { UserDocument, UserRole } from '../users/schemas/user.schema';
+import {
+  UserDocument,
+  UserRole,
+  UserStatus,
+} from '../users/schemas/user.schema';
 import {
   RegisterDto,
   LoginDto,
@@ -15,6 +19,27 @@ import {
   ResetPasswordDto,
   ChangePasswordDto,
 } from './dto';
+
+type AuthTokens = {
+  accessToken: string;
+  refreshToken: string;
+};
+
+type JwtPayload = {
+  sub: string;
+  email: string;
+  role: UserRole;
+};
+
+type SanitizedUser = Record<string, unknown>;
+
+type GoogleTokenPayload = {
+  aud: string;
+  sub: string;
+  email: string;
+  name: string;
+  picture: string;
+};
 
 @Injectable()
 export class AuthService {
@@ -26,7 +51,9 @@ export class AuthService {
 
   // ========== REGISTER ==========
 
-  async register(dto: RegisterDto) {
+  async register(
+    dto: RegisterDto,
+  ): Promise<AuthTokens & { user: SanitizedUser }> {
     const user = await this.usersService.create({
       email: dto.email.toLowerCase(),
       password: dto.password,
@@ -49,14 +76,14 @@ export class AuthService {
 
   // ========== LOGIN ==========
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto): Promise<AuthTokens & { user: SanitizedUser }> {
     const user = await this.usersService.findByEmail(dto.email);
 
     if (!user) {
       throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
     }
 
-    if (user.status === 'locked') {
+    if (user.status === UserStatus.LOCKED) {
       throw new UnauthorizedException('Tài khoản đã bị khóa');
     }
 
@@ -80,7 +107,9 @@ export class AuthService {
 
   // ========== GOOGLE AUTH ==========
 
-  async googleAuth(googleToken: string) {
+  async googleAuth(
+    googleToken: string,
+  ): Promise<AuthTokens & { user: SanitizedUser }> {
     // Verify Google token using Google API
     const googlePayload = await this.verifyGoogleToken(googleToken);
 
@@ -113,7 +142,7 @@ export class AuthService {
       }
     }
 
-    if (user.status === 'locked') {
+    if (user.status === UserStatus.LOCKED) {
       throw new UnauthorizedException('Tài khoản đã bị khóa');
     }
 
@@ -138,9 +167,9 @@ export class AuthService {
 
   // ========== REFRESH TOKEN ==========
 
-  async refreshTokens(refreshToken: string) {
+  async refreshTokens(refreshToken: string): Promise<AuthTokens> {
     try {
-      const payload = this.jwtService.verify(refreshToken, {
+      const payload = this.jwtService.verify<JwtPayload>(refreshToken, {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       });
 
@@ -247,29 +276,36 @@ export class AuthService {
 
   // ========== HELPERS ==========
 
-  private async generateTokens(user: UserDocument) {
-    const payload = {
+  private async generateTokens(user: UserDocument): Promise<AuthTokens> {
+    const payload: JwtPayload = {
       sub: user._id.toString(),
       email: user.email,
       role: user.role,
     };
+    const accessExpiresIn = (this.configService.get<string>(
+      'JWT_ACCESS_EXPIRATION',
+    ) || '15m') as JwtSignOptions['expiresIn'];
+    const refreshExpiresIn = (this.configService.get<string>(
+      'JWT_REFRESH_EXPIRATION',
+    ) || '7d') as JwtSignOptions['expiresIn'];
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         secret: this.configService.get<string>('JWT_ACCESS_SECRET') || 'secret',
-        expiresIn: (this.configService.get<string>('JWT_ACCESS_EXPIRATION') || '15m') as any,
+        expiresIn: accessExpiresIn,
       }),
       this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET') || 'secret',
-        expiresIn: (this.configService.get<string>('JWT_REFRESH_EXPIRATION') || '7d') as any,
+        secret:
+          this.configService.get<string>('JWT_REFRESH_SECRET') || 'secret',
+        expiresIn: refreshExpiresIn,
       }),
     ]);
 
     return { accessToken, refreshToken };
   }
 
-  private sanitizeUser(user: UserDocument) {
-    const obj = user.toObject();
+  private sanitizeUser(user: UserDocument): SanitizedUser {
+    const obj = user.toObject() as SanitizedUser;
     delete obj.password;
     delete obj.refreshToken;
     delete obj.resetPasswordOtp;
@@ -290,7 +326,7 @@ export class AuthService {
       );
       if (!response.ok) return null;
 
-      const payload = await response.json();
+      const payload = (await response.json()) as GoogleTokenPayload;
       const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
 
       if (payload.aud !== clientId) return null;

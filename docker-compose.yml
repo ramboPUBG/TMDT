@@ -11,13 +11,26 @@ services:
     environment:
       MONGO_INITDB_DATABASE: sachcu
     restart: unless-stopped
-
+  
   redis:
     image: redis:7-alpine
     container_name: sachcu-redis
     ports:
       - '6379:6379'
     restart: unless-stopped
-
+  app:
+    build: .
+    container_name: sachcu-backend
+    ports:
+      - '3000:3000'
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/sachcu
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - mongodb
+      - redis
+    restart: unless-stopped
+    networks:
+      - sachcu-network
 volumes:
   mongodb_data:

@@ -26,7 +26,12 @@ export class UploadController {
       },
       fileFilter: (req, file, cb) => {
         if (!file.originalname.match(/\.(jpg|jpeg|png|webp)$/)) {
-          return cb(new BadRequestException('Chỉ chấp nhận file ảnh (jpg, jpeg, png, webp)'), false);
+          return cb(
+            new BadRequestException(
+              'Chỉ chấp nhận file ảnh (jpg, jpeg, png, webp)',
+            ),
+            false,
+          );
         }
         cb(null, true);
       },
@@ -48,7 +53,12 @@ export class UploadController {
       },
       fileFilter: (req, file, cb) => {
         if (!file.originalname.match(/\.(jpg|jpeg|png|webp)$/)) {
-          return cb(new BadRequestException('Chỉ chấp nhận file ảnh (jpg, jpeg, png, webp)'), false);
+          return cb(
+            new BadRequestException(
+              'Chỉ chấp nhận file ảnh (jpg, jpeg, png, webp)',
+            ),
+            false,
+          );
         }
         cb(null, true);
       },
@@ -59,7 +69,11 @@ export class UploadController {
       throw new BadRequestException('Vui lòng chọn ít nhất một file');
     }
     const result = await this.uploadService.uploadMultipleImages(files);
-    return { success: true, data: result, message: 'Upload các ảnh thành công' };
+    return {
+      success: true,
+      data: result,
+      message: 'Upload các ảnh thành công',
+    };
   }
 
   @Delete('image')

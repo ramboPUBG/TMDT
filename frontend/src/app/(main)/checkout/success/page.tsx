@@ -4,12 +4,13 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { formatPrice } from "@/lib/utils";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const method = searchParams.get("method") || "COD";
   const amount = Number(searchParams.get("amount") || 0);
+  const [transferCode] = useState(() => Math.floor(1000 + Math.random() * 9000));
 
   return (
     <div className="bg-muted/30 min-h-screen pb-24 pt-12">
@@ -49,7 +50,7 @@ function CheckoutSuccessContent() {
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Nội dung chuyển khoản</div>
                   <div className="font-bold text-foreground font-mono bg-muted px-2 py-1 rounded inline-block text-sm">
-                    SACHCU {Math.floor(1000 + Math.random() * 9000)}
+                    SACHCU {transferCode}
                   </div>
                 </div>
               </div>

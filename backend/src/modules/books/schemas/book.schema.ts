@@ -4,10 +4,10 @@ import { Document, Types } from 'mongoose';
 export type BookDocument = Book & Document;
 
 export enum BookCondition {
-  LIKE_NEW = 'like_new',     // Như mới (>90%)
-  GOOD = 'good',             // Tốt (70-90%)
-  FAIR = 'fair',             // Khá (50-70%)
-  WORN = 'worn',             // Cũ (<50%)
+  LIKE_NEW = 'like_new', // Như mới (>90%)
+  GOOD = 'good', // Tốt (70-90%)
+  FAIR = 'fair', // Khá (50-70%)
+  WORN = 'worn', // Cũ (<50%)
 }
 
 export enum BookStatus {
@@ -130,10 +130,14 @@ export const BookSchema = SchemaFactory.createForClass(Book);
 BookSchema.index({ sellerId: 1, status: 1 });
 BookSchema.index({ categoryId: 1, status: 1 });
 BookSchema.index({ status: 1, createdAt: -1 });
-BookSchema.index({ slug: 1 }, { unique: true });
 BookSchema.index(
   { title: 'text', author: 'text', description: 'text', tags: 'text' },
-  { weights: { title: 10, author: 5, tags: 3, description: 1 }, name: 'book_text_search', default_language: 'none', language_override: 'dummy_language' },
+  {
+    weights: { title: 10, author: 5, tags: 3, description: 1 },
+    name: 'book_text_search',
+    default_language: 'none',
+    language_override: 'dummy_language',
+  },
 );
 BookSchema.index({ sellingPrice: 1 });
 BookSchema.index({ condition: 1 });

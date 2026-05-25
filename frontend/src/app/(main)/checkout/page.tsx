@@ -1,18 +1,40 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 import { useAuthStore } from "@/stores/authStore";
-import api from "@/lib/api";
+import api from "@/services/api";
+
+interface CheckoutItem {
+  id: string;
+  title: string;
+  price: number;
+  quantity: number;
+  imageUrl: string;
+}
+
+interface CheckoutSeller {
+  sellerId: string;
+  sellerName: string;
+  items: CheckoutItem[];
+}
+
+function getErrorMessage(err: unknown, fallback: string) {
+  if (typeof err === "object" && err !== null && "response" in err) {
+    const response = (err as { response?: { data?: { message?: string } } }).response;
+    return response?.data?.message || fallback;
+  }
+  return fallback;
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
   const [mounted, setMounted] = useState(false);
-  const [checkoutData, setCheckoutData] = useState<any[]>([]);
+  const [checkoutData, setCheckoutData] = useState<CheckoutSeller[]>([]);
   const [loading, setLoading] = useState(false);
 
   const [fullName, setFullName] = useState("");
@@ -22,6 +44,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     if (user) {
       setFullName(user.fullName || "");
@@ -39,7 +62,7 @@ export default function CheckoutPage() {
   let totalItems = 0;
   let totalPrice = 0;
   checkoutData.forEach(seller => {
-    seller.items.forEach((item: any) => {
+    seller.items.forEach((item) => {
       totalItems += item.quantity;
       totalPrice += item.price * item.quantity;
     });
@@ -58,7 +81,7 @@ export default function CheckoutPage() {
     try {
       const orderGroups = checkoutData.map(seller => {
         let sellerTotal = 0;
-        const items = seller.items.map((item: any) => {
+        const items = seller.items.map((item) => {
           sellerTotal += item.price * item.quantity;
           return {
             bookId: item.id,
@@ -87,9 +110,9 @@ export default function CheckoutPage() {
       localStorage.removeItem("checkout_session");
       router.push(`/checkout/success?method=${paymentMethod}&amount=${totalPrice}`);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.response?.data?.message || "Có lỗi xảy ra khi đặt hàng.");
+      setError(getErrorMessage(err, "Có lỗi xảy ra khi đặt hàng."));
     } finally {
       setLoading(false);
     }
@@ -160,10 +183,17 @@ export default function CheckoutPage() {
                   <div key={idx} className="border-b border-border pb-4 last:border-0 last:pb-0">
                     <div className="text-sm font-bold mb-2 text-primary">{seller.sellerName}</div>
                     <div className="flex flex-col gap-3">
-                      {seller.items.map((item: any, iIdx: number) => (
+                      {seller.items.map((item, iIdx) => (
                         <div key={iIdx} className="flex gap-3">
-                          <div className="w-12 h-16 bg-muted rounded overflow-hidden flex-shrink-0">
-                            <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                          <div className="relative w-12 h-16 bg-muted rounded overflow-hidden flex-shrink-0">
+                            <Image
+                              src={item.imageUrl}
+                              alt={item.title}
+                              fill
+                              sizes="48px"
+                              className="object-cover"
+                              unoptimized
+                            />
                           </div>
                           <div className="flex-1 text-sm">
                             <div className="line-clamp-2 leading-tight mb-1">{item.title}</div>

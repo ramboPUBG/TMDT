@@ -12,7 +12,10 @@ export class OrdersService {
     @InjectModel(Book.name) private bookModel: Model<BookDocument>,
   ) {}
 
-  async createOrders(createOrderDto: CreateOrderDto, buyerId: string): Promise<Order[]> {
+  async createOrders(
+    createOrderDto: CreateOrderDto,
+    buyerId: string,
+  ): Promise<Order[]> {
     const { orderGroups, shippingAddress, paymentMethod } = createOrderDto;
     const createdOrders: Order[] = [];
 
@@ -24,7 +27,9 @@ export class OrdersService {
           throw new BadRequestException(`Sách không tồn tại: ${item.title}`);
         }
         if (book.quantity < item.quantity) {
-          throw new BadRequestException(`Không đủ số lượng tồn kho cho sách: ${item.title}`);
+          throw new BadRequestException(
+            `Không đủ số lượng tồn kho cho sách: ${item.title}`,
+          );
         }
       }
     }
@@ -35,7 +40,7 @@ export class OrdersService {
       const newOrder = new this.orderModel({
         buyerId: new Types.ObjectId(buyerId),
         sellerId: new Types.ObjectId(group.sellerId),
-        items: group.items.map(item => ({
+        items: group.items.map((item) => ({
           bookId: new Types.ObjectId(item.bookId),
           title: item.title,
           price: item.price,
@@ -59,5 +64,13 @@ export class OrdersService {
     }
 
     return createdOrders;
+  }
+
+  async findByBuyer(buyerId: string): Promise<OrderDocument[]> {
+    return this.orderModel
+      .find({ buyerId: new Types.ObjectId(buyerId) })
+      .sort({ createdAt: -1 })
+      .populate('sellerId', 'fullName avatar')
+      .exec();
   }
 }

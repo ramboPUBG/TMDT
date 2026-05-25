@@ -101,9 +101,8 @@ export class User {
 
 export const UserSchema = SchemaFactory.createForClass(User);
 
-// Indexes
-UserSchema.index({ email: 1 });
-UserSchema.index({ phone: 1 });
+// Indexes (email unique index is defined on @Prop)
+UserSchema.index({ phone: 1 }, { sparse: true });
 UserSchema.index({ role: 1 });
 UserSchema.index({ status: 1 });
 UserSchema.index({ googleId: 1 });

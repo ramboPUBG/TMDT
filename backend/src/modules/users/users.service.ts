@@ -1,10 +1,29 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
-import { User, UserDocument, UserRole, UserStatus } from './schemas/user.schema';
+import {
+  User,
+  UserDocument,
+  UserRole,
+  UserStatus,
+} from './schemas/user.schema';
 import { Address, AddressDocument } from './schemas/address.schema';
 import { PaginatedResult } from '../../common/dto/pagination.dto';
+
+type SellerProfileUpdate = {
+  shopName?: string;
+  description?: string;
+  bankAccount?: {
+    bankName?: string;
+    accountNumber?: string;
+    accountHolder?: string;
+  };
+};
 
 @Injectable()
 export class UsersService {
@@ -38,7 +57,11 @@ export class UsersService {
   }
 
   async findByEmail(email: string): Promise<UserDocument | null> {
-    return this.userModel.findOne({ email: email.toLowerCase() }).select('+password +refreshToken');
+    const user = await this.userModel
+      .findOne({ email: email.toLowerCase() })
+      .select('+password +refreshToken')
+      .exec();
+    return user;
   }
 
   async findByGoogleId(googleId: string): Promise<UserDocument | null> {
@@ -91,9 +114,11 @@ export class UsersService {
   }
 
   async findByResetOtp(email: string): Promise<UserDocument | null> {
-    return this.userModel
+    const user = await this.userModel
       .findOne({ email: email.toLowerCase() })
-      .select('+resetPasswordOtp +resetPasswordExpires');
+      .select('+resetPasswordOtp +resetPasswordExpires')
+      .exec();
+    return user;
   }
 
   async updateLastLogin(userId: string): Promise<void> {
@@ -135,6 +160,46 @@ export class UsersService {
       throw new NotFoundException('Không tìm thấy người bán');
     }
     return seller;
+  }
+
+  async updateSellerProfile(
+    userId: string,
+    data: SellerProfileUpdate,
+  ): Promise<UserDocument> {
+    const update: Record<string, unknown> = {};
+
+    if (data.shopName !== undefined) {
+      update['sellerProfile.shopName'] = data.shopName;
+    }
+    if (data.description !== undefined) {
+      update['sellerProfile.description'] = data.description;
+    }
+    if (data.bankAccount) {
+      if (data.bankAccount.bankName !== undefined) {
+        update['sellerProfile.bankAccount.bankName'] =
+          data.bankAccount.bankName;
+      }
+      if (data.bankAccount.accountNumber !== undefined) {
+        update['sellerProfile.bankAccount.accountNumber'] =
+          data.bankAccount.accountNumber;
+      }
+      if (data.bankAccount.accountHolder !== undefined) {
+        update['sellerProfile.bankAccount.accountHolder'] =
+          data.bankAccount.accountHolder;
+      }
+    }
+
+    const user = await this.userModel.findOneAndUpdate(
+      { _id: userId, role: { $in: [UserRole.SELLER, UserRole.ADMIN] } },
+      { $set: update },
+      { new: true },
+    );
+
+    if (!user) {
+      throw new NotFoundException('KhÃ´ng tÃ¬m tháº¥y ngÆ°á»i bÃ¡n');
+    }
+
+    return user;
   }
 
   // ========== ADMIN ==========
@@ -197,7 +262,9 @@ export class UsersService {
   // ========== ADDRESSES ==========
 
   async getAddresses(userId: string): Promise<AddressDocument[]> {
-    return this.addressModel.find({ userId }).sort({ isDefault: -1, createdAt: -1 });
+    return this.addressModel
+      .find({ userId })
+      .sort({ isDefault: -1, createdAt: -1 });
   }
 
   async createAddress(
@@ -206,10 +273,7 @@ export class UsersService {
   ): Promise<AddressDocument> {
     // If this is the first address or set as default, reset others
     if (data.isDefault) {
-      await this.addressModel.updateMany(
-        { userId },
-        { isDefault: false },
-      );
+      await this.addressModel.updateMany({ userId }, { isDefault: false });
     }
 
     const addressCount = await this.addressModel.countDocuments({ userId });
@@ -227,10 +291,7 @@ export class UsersService {
     data: Partial<Address>,
   ): Promise<AddressDocument> {
     if (data.isDefault) {
-      await this.addressModel.updateMany(
-        { userId },
-        { isDefault: false },
-      );
+      await this.addressModel.updateMany({ userId }, { isDefault: false });
     }
 
     const address = await this.addressModel.findOneAndUpdate(
