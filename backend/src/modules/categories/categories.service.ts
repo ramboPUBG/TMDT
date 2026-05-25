@@ -2,18 +2,46 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Category, CategoryDocument } from './schemas/category.schema';
+import { Book, BookDocument } from '../books/schemas/book.schema';
 
 @Injectable()
 export class CategoriesService {
   constructor(
     @InjectModel(Category.name) private categoryModel: Model<CategoryDocument>,
+    @InjectModel(Book.name) private bookModel: Model<BookDocument>,
   ) {}
 
-  async findAll(activeOnly: boolean = true): Promise<CategoryDocument[]> {
+  async findAll(activeOnly: boolean = true): Promise<any[]> {
     const filter: Record<string, unknown> = {};
     if (activeOnly) filter.isActive = true;
 
-    return this.categoryModel.find(filter).sort({ order: 1, name: 1 });
+    const categories = await this.categoryModel.find(filter).sort({ order: 1, name: 1 }).lean();
+
+    const categoryIds = categories.map((cat) => cat._id);
+    const counts = await this.bookModel.aggregate([
+      {
+        $match: {
+          categoryId: { $in: categoryIds },
+          status: 'approved',
+        },
+      },
+      {
+        $group: {
+          _id: '$categoryId',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const countMap = new Map<string, number>();
+    counts.forEach((c) => {
+      countMap.set(c._id.toString(), c.count);
+    });
+
+    return categories.map((cat) => ({
+      ...cat,
+      count: countMap.get(cat._id.toString()) || 0,
+    }));
   }
 
   async findBySlug(slug: string): Promise<CategoryDocument> {
@@ -59,18 +87,43 @@ export class CategoriesService {
     await this.categoryModel.findByIdAndDelete(id);
   }
 
-  async getTree(): Promise<CategoryDocument[]> {
+  async getTree(): Promise<any[]> {
     const categories = await this.categoryModel
       .find({ isActive: true })
       .sort({ order: 1 })
       .lean();
+
+    const categoryIds = categories.map((cat) => cat._id);
+    const counts = await this.bookModel.aggregate([
+      {
+        $match: {
+          categoryId: { $in: categoryIds },
+          status: 'approved',
+        },
+      },
+      {
+        $group: {
+          _id: '$categoryId',
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const countMap = new Map<string, number>();
+    counts.forEach((c) => {
+      countMap.set(c._id.toString(), c.count);
+    });
 
     // Build tree structure
     const map = new Map<string, any>();
     const roots: any[] = [];
 
     categories.forEach((cat: any) => {
-      map.set(cat._id.toString(), { ...cat, children: [] });
+      map.set(cat._id.toString(), {
+        ...cat,
+        count: countMap.get(cat._id.toString()) || 0,
+        children: [],
+      });
     });
 
     categories.forEach((cat: any) => {

@@ -13,6 +13,10 @@ export class BookFilterDto extends PaginationDto {
   categoryId?: string;
 
   @IsOptional()
+  @IsString()
+  category?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(0)

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards, Request, Param } from '@nestjs/common';
 import { BooksService } from './books.service';
 import { BookFilterDto } from './dto/book-filter.dto';
 import { CreateBookDto } from './dto/create-book.dto';
@@ -10,7 +10,16 @@ export class BooksController {
 
   @Get()
   async findAll(@Query() filterDto: BookFilterDto) {
+    console.log('BooksController.findAll received filterDto:', filterDto);
     return this.booksService.findAll(filterDto);
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    return {
+      success: true,
+      data: await this.booksService.findOne(id),
+    };
   }
 
   @Post()

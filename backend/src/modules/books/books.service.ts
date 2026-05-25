@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Book, BookDocument, BookStatus } from './schemas/book.schema';
 import { BookFilterDto } from './dto/book-filter.dto';
 import { CreateBookDto } from './dto/create-book.dto';
@@ -16,6 +16,7 @@ export class BooksService {
       limit = 20,
       q,
       categoryId,
+      category,
       minPrice,
       maxPrice,
       condition,
@@ -30,8 +31,13 @@ export class BooksService {
       query.$text = { $search: q };
     }
 
-    if (categoryId) {
-      query.categoryId = categoryId;
+    const catId = categoryId || category;
+    if (catId) {
+      if (Types.ObjectId.isValid(catId)) {
+        query.categoryId = new Types.ObjectId(catId);
+      } else {
+        query.categoryId = new Types.ObjectId();
+      }
     }
 
     if (minPrice !== undefined || maxPrice !== undefined) {
@@ -71,11 +77,25 @@ export class BooksService {
       .sort(sortOptions)
       .skip(skip)
       .limit(limit)
-      .populate('sellerId', 'name avatar rating')
+      .populate('sellerId', 'fullName avatar sellerProfile')
       .populate('categoryId', 'name slug')
       .exec();
 
     return new PaginatedResult(items, total, page, limit);
+  }
+
+  async findOne(id: string): Promise<Book> {
+    const book = await this.bookModel
+      .findById(id)
+      .populate('sellerId', 'fullName avatar sellerProfile')
+      .populate('categoryId', 'name slug')
+      .exec();
+
+    if (!book || book.status !== BookStatus.APPROVED) {
+      throw new NotFoundException('Book not found');
+    }
+
+    return book;
   }
 
   async create(createBookDto: CreateBookDto, sellerId: string): Promise<Book> {
