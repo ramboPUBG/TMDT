@@ -47,6 +47,8 @@ export default function HomePage() {
                 src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800&q=80"
                 alt="Sách cũ"
                 fill
+                priority
+                loading="eager"
                 sizes="(max-width: 768px) 100vw, 448px"
                 className="object-cover rounded-2xl"
                 unoptimized

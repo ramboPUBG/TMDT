@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
@@ -42,7 +42,7 @@ const mockCategories = [
 
 export default function UploadBookPage() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { hasHydrated, isAuthenticated } = useAuthStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [images, setImages] = useState<File[]>([]);
@@ -60,10 +60,20 @@ export default function UploadBookPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Redirect if not authenticated
-  if (!isAuthenticated && typeof window !== "undefined") {
-    router.push("/login?redirect=/product/upload");
-    return null;
+  useEffect(() => {
+    if (hasHydrated && !isAuthenticated) {
+      router.replace("/login?redirect=/product/upload");
+    }
+  }, [hasHydrated, isAuthenticated, router]);
+
+  if (!hasHydrated || !isAuthenticated) {
+    return (
+      <div className="bg-muted/30 min-h-screen pb-16 pt-8">
+        <div className="container mx-auto px-4 max-w-3xl">
+          <p className="text-sm text-muted-foreground">Đang kiểm tra đăng nhập...</p>
+        </div>
+      </div>
+    );
   }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
