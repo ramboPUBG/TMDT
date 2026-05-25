@@ -1,19 +1,29 @@
 ﻿"use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useSyncExternalStore } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDebounceValue } from "usehooks-ts";
-import { LayoutGrid } from "lucide-react";
+import { LayoutGrid, LogOut, UserRound } from "lucide-react";
 import { useCartStore } from "@/stores/cartStore";
 import { useAuthStore } from "@/stores/authStore";
 import api from "@/services/api";
 import { Book, getBookImageUrl } from "@/types";
 
+const subscribeToHydration = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 export function Header() {
   const router = useRouter();
   const searchRef = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = useState(false);
+  const accountRef = useRef<HTMLDivElement>(null);
+  const mounted = useSyncExternalStore(
+    subscribeToHydration,
+    getClientSnapshot,
+    getServerSnapshot
+  );
   const itemCount = useCartStore((state) => state.itemCount);
   const { isAuthenticated, user, logout } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState("");
@@ -21,20 +31,14 @@ export function Header() {
   const [searchResults, setSearchResults] = useState<Book[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
 
   useEffect(() => {
     const q = debouncedSearchTerm.trim();
     if (!q) {
-      setSearchResults([]);
-      setIsSearching(false);
       return;
     }
 
-    setIsSearching(true);
     api
       .get(`/books/search?q=${encodeURIComponent(q)}&limit=8`)
       .then((res: { data?: Book[] }) => setSearchResults(res.data || []))
@@ -46,6 +50,12 @@ export function Header() {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setShowDropdown(false);
+      }
+      if (
+        accountRef.current &&
+        !accountRef.current.contains(e.target as Node)
+      ) {
+        setShowAccountMenu(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -66,6 +76,11 @@ export function Header() {
     goToSearchResults();
   };
 
+  const handleLogout = () => {
+    setShowAccountMenu(false);
+    logout();
+  };
+
   return (
     <header className="bg-white border-b sticky top-0 z-50">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -79,7 +94,14 @@ export function Header() {
               type="text"
               value={searchTerm}
               onChange={(e) => {
-                setSearchTerm(e.target.value);
+                const nextValue = e.target.value;
+                setSearchTerm(nextValue);
+                if (!nextValue.trim()) {
+                  setSearchResults([]);
+                  setIsSearching(false);
+                } else {
+                  setIsSearching(true);
+                }
                 setShowDropdown(true);
               }}
               onFocus={() => setShowDropdown(true)}
@@ -125,12 +147,15 @@ export function Header() {
                       }}
                       className="flex items-center gap-3 px-4 py-2 hover:bg-muted transition-colors"
                     >
-                      <div className="w-10 h-14 bg-muted rounded">
+                      <div className="relative w-10 h-14 bg-muted rounded overflow-hidden">
                         {getBookImageUrl(book) && (
-                          <img
+                          <Image
                             src={getBookImageUrl(book)}
                             alt={book.title}
-                            className="w-full h-full object-cover rounded"
+                            fill
+                            sizes="40px"
+                            className="object-cover"
+                            unoptimized
                           />
                         )}
                       </div>
@@ -198,16 +223,44 @@ export function Header() {
           <div className="h-6 w-px bg-border" />
 
           {mounted && isAuthenticated ? (
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                {user?.fullName?.charAt(0) || "U"}
-              </div>
+            <div className="relative" ref={accountRef}>
               <button
-                onClick={logout}
-                className="text-sm text-muted-foreground hover:text-red-500"
+                type="button"
+                title="Tài khoản"
+                onClick={() => setShowAccountMenu((current) => !current)}
+                className="w-9 h-9 rounded-full border border-primary/20 bg-primary/10 flex items-center justify-center text-primary font-bold text-sm hover:bg-primary/20 focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
-                Đăng xuất
+                {user?.fullName?.charAt(0) || "U"}
               </button>
+
+              {showAccountMenu && (
+                <div className="absolute right-0 top-full mt-2 w-56 rounded-md border border-border bg-white py-2 shadow-lg">
+                  <div className="border-b border-border px-4 py-3">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {user?.fullName || "Tài khoản"}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {user?.email}
+                    </p>
+                  </div>
+                  <Link
+                    href="/profile"
+                    onClick={() => setShowAccountMenu(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted"
+                  >
+                    <UserRound size={16} />
+                    Quản lí tài khoản
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-500 hover:bg-red-50"
+                  >
+                    <LogOut size={16} />
+                    Đăng xuất
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex items-center gap-2">

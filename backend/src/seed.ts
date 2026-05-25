@@ -21,7 +21,7 @@ async function bootstrap() {
   console.log('Clearing existing data and indexes...');
   try {
     await bookModel.collection.dropIndex('book_text_search');
-  } catch (e) {
+  } catch {
     // ignore if index doesn't exist
   }
   await userModel.deleteMany({});
@@ -60,7 +60,7 @@ async function bootstrap() {
     },
   });
 
-  const buyer = await userModel.create({
+  await userModel.create({
     fullName: 'Nguyễn Văn A (Người mua)',
     email: 'buyer@gmail.com',
     password: hashedPassword,
@@ -206,4 +206,4 @@ async function bootstrap() {
   process.exit(0);
 }
 
-bootstrap();
+void bootstrap();

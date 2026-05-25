@@ -1,10 +1,41 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
-import { Book, BookDocument, BookStatus } from './schemas/book.schema';
+import { Model, SortOrder, Types } from 'mongoose';
+import {
+  Book,
+  BookCondition,
+  BookDocument,
+  BookStatus,
+} from './schemas/book.schema';
 import { BookFilterDto } from './dto/book-filter.dto';
 import { CreateBookDto } from './dto/create-book.dto';
 import { PaginatedResult } from '../../common/dto/pagination.dto';
+
+type RegexFilter = {
+  $regex: string;
+  $options: 'i';
+};
+
+type PriceFilter = {
+  $gte?: number;
+  $lte?: number;
+};
+
+type BookQuery = {
+  status: BookStatus;
+  $or?: Array<
+    | { title: RegExp }
+    | { author: RegExp }
+    | { description: RegExp }
+    | { publisher: RegExp }
+    | { tags: RegExp }
+  >;
+  categoryId?: Types.ObjectId;
+  sellingPrice?: PriceFilter;
+  condition?: BookCondition;
+  author?: RegexFilter;
+  publisher?: RegexFilter;
+};
 
 @Injectable()
 export class BooksService {
@@ -25,8 +56,7 @@ export class BooksService {
       sort,
     } = filterDto;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const query: any = { status: BookStatus.APPROVED };
+    const query: BookQuery = { status: BookStatus.APPROVED };
 
     if (q?.trim()) {
       const keyword = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -67,7 +97,7 @@ export class BooksService {
       query.publisher = { $regex: publisher, $options: 'i' };
     }
 
-    let sortOptions: any = { createdAt: -1 };
+    let sortOptions: Record<string, SortOrder> = { createdAt: -1 };
     if (sort === 'price_asc') {
       sortOptions = { sellingPrice: 1 };
     } else if (sort === 'price_desc') {
@@ -78,11 +108,12 @@ export class BooksService {
       sortOptions = { createdAt: -1 };
     }
 
-    const total = await this.bookModel.countDocuments(query);
+    const mongoQuery: Record<string, unknown> = query;
+    const total = await this.bookModel.countDocuments(mongoQuery);
     const skip = (page - 1) * limit;
 
     const items = await this.bookModel
-      .find(query)
+      .find(mongoQuery)
       .sort(sortOptions)
       .skip(skip)
       .limit(limit)

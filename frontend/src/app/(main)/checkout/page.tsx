@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -184,8 +185,15 @@ export default function CheckoutPage() {
                     <div className="flex flex-col gap-3">
                       {seller.items.map((item, iIdx) => (
                         <div key={iIdx} className="flex gap-3">
-                          <div className="w-12 h-16 bg-muted rounded overflow-hidden flex-shrink-0">
-                            <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                          <div className="relative w-12 h-16 bg-muted rounded overflow-hidden flex-shrink-0">
+                            <Image
+                              src={item.imageUrl}
+                              alt={item.title}
+                              fill
+                              sizes="48px"
+                              className="object-cover"
+                              unoptimized
+                            />
                           </div>
                           <div className="flex-1 text-sm">
                             <div className="line-clamp-2 leading-tight mb-1">{item.title}</div>

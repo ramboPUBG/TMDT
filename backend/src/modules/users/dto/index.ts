@@ -1,11 +1,11 @@
 import {
-  IsEmail,
   IsString,
   IsOptional,
   MinLength,
-  IsPhoneNumber,
   IsBoolean,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -83,6 +83,36 @@ export class UpgradeToSellerDto {
   @IsOptional()
   @IsString()
   description?: string;
+}
+
+export class BankAccountDto {
+  @IsOptional()
+  @IsString()
+  bankName?: string;
+
+  @IsOptional()
+  @IsString()
+  accountNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  accountHolder?: string;
+}
+
+export class UpdateSellerProfileDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  shopName?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => BankAccountDto)
+  bankAccount?: BankAccountDto;
 }
 
 export class AdminQueryUsersDto {

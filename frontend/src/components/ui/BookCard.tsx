@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { formatPrice } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
 
@@ -34,7 +35,14 @@ export function BookCard({
         {/* Replace with actual next/image when you have valid src */}
         <div className="absolute inset-0 bg-primary/5 flex items-center justify-center text-muted-foreground/50">
            {imageUrl ? (
-             <img src={imageUrl} alt={title} className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" />
+             <Image
+               src={imageUrl}
+               alt={title}
+               fill
+               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 240px"
+               className="object-cover group-hover:scale-105 transition-transform duration-500"
+               unoptimized
+             />
            ) : (
              <span className="text-4xl">📚</span>
            )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, use } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
@@ -93,8 +94,15 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
           <div className="lg:col-span-4 flex flex-col gap-6">
             <div className="bg-white p-5 rounded-2xl border border-border">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-16 h-16 rounded-full overflow-hidden border border-border bg-muted">
-                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${book.sellerId?._id || book.sellerId?.fullName || "seller"}`} alt={book.sellerId?.fullName || "Người bán"} className="w-full h-full object-cover" />
+                <div className="relative w-16 h-16 rounded-full overflow-hidden border border-border bg-muted">
+                  <Image
+                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${book.sellerId?._id || book.sellerId?.fullName || "seller"}`}
+                    alt={book.sellerId?.fullName || "Người bán"}
+                    fill
+                    sizes="64px"
+                    className="object-cover"
+                    unoptimized
+                  />
                 </div>
                 <div>
                   <h3 className="font-bold text-foreground line-clamp-1">{book.sellerId?.fullName || "Người bán"}</h3>

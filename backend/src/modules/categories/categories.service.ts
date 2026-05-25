@@ -4,9 +4,29 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Category, CategoryDocument } from './schemas/category.schema';
 import { Book, BookDocument } from '../books/schemas/book.schema';
+
+type CategoryLean = Omit<Category, 'createdAt' | 'updatedAt'> & {
+  _id: Types.ObjectId;
+  parentId: Types.ObjectId | null;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
+type CategoryWithCount = CategoryLean & {
+  count: number;
+};
+
+type CategoryTreeNode = CategoryWithCount & {
+  children: CategoryTreeNode[];
+};
+
+type CategoryCount = {
+  _id: Types.ObjectId;
+  count: number;
+};
 
 @Injectable()
 export class CategoriesService {
@@ -15,17 +35,17 @@ export class CategoriesService {
     @InjectModel(Book.name) private bookModel: Model<BookDocument>,
   ) {}
 
-  async findAll(activeOnly: boolean = true): Promise<any[]> {
+  async findAll(activeOnly: boolean = true): Promise<CategoryWithCount[]> {
     const filter: Record<string, unknown> = {};
     if (activeOnly) filter.isActive = true;
 
     const categories = await this.categoryModel
       .find(filter)
       .sort({ order: 1, name: 1 })
-      .lean();
+      .lean<CategoryLean[]>();
 
     const categoryIds = categories.map((cat) => cat._id);
-    const counts = await this.bookModel.aggregate([
+    const counts = await this.bookModel.aggregate<CategoryCount>([
       {
         $match: {
           categoryId: { $in: categoryIds },
@@ -94,14 +114,14 @@ export class CategoriesService {
     await this.categoryModel.findByIdAndDelete(id);
   }
 
-  async getTree(): Promise<any[]> {
+  async getTree(): Promise<CategoryTreeNode[]> {
     const categories = await this.categoryModel
       .find({ isActive: true })
       .sort({ order: 1 })
-      .lean();
+      .lean<CategoryLean[]>();
 
     const categoryIds = categories.map((cat) => cat._id);
-    const counts = await this.bookModel.aggregate([
+    const counts = await this.bookModel.aggregate<CategoryCount>([
       {
         $match: {
           categoryId: { $in: categoryIds },
@@ -122,10 +142,10 @@ export class CategoriesService {
     });
 
     // Build tree structure
-    const map = new Map<string, any>();
-    const roots: any[] = [];
+    const map = new Map<string, CategoryTreeNode>();
+    const roots: CategoryTreeNode[] = [];
 
-    categories.forEach((cat: any) => {
+    categories.forEach((cat) => {
       map.set(cat._id.toString(), {
         ...cat,
         count: countMap.get(cat._id.toString()) || 0,
@@ -133,8 +153,9 @@ export class CategoriesService {
       });
     });
 
-    categories.forEach((cat: any) => {
+    categories.forEach((cat) => {
       const node = map.get(cat._id.toString());
+      if (!node) return;
       if (cat.parentId) {
         const parent = map.get(cat.parentId.toString());
         if (parent) {

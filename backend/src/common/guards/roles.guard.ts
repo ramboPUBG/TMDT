@@ -7,6 +7,12 @@ import {
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 
+type RequestWithUserRole = {
+  user?: {
+    role?: string;
+  };
+};
+
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
@@ -21,7 +27,7 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const { user } = context.switchToHttp().getRequest();
+    const { user } = context.switchToHttp().getRequest<RequestWithUserRole>();
 
     if (!user) {
       throw new ForbiddenException('Bạn không có quyền truy cập');

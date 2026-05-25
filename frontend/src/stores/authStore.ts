@@ -7,9 +7,23 @@ export interface User {
   _id: string;
   email: string;
   fullName: string;
+  phone?: string;
   avatar?: string;
   role: UserRole;
   status: string;
+  sellerProfile?: {
+    shopName?: string;
+    description?: string;
+    rating?: number;
+    totalReviews?: number;
+    totalSold?: number;
+    isVerified?: boolean;
+    bankAccount?: {
+      bankName?: string;
+      accountNumber?: string;
+      accountHolder?: string;
+    };
+  };
 }
 
 interface AuthState {

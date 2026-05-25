@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
@@ -85,9 +86,16 @@ export default function CartPage() {
                             className="w-4 h-4 rounded border-border text-primary focus:ring-primary" 
                           />
                         </div>
-                        <div className="w-20 h-24 sm:w-24 sm:h-32 rounded-lg overflow-hidden border border-border bg-muted flex-shrink-0">
+                        <div className="relative w-20 h-24 sm:w-24 sm:h-32 rounded-lg overflow-hidden border border-border bg-muted flex-shrink-0">
                           {getBookImageUrl(item.bookId) ? (
-                            <img src={getBookImageUrl(item.bookId)} alt={item.bookId.title} className="w-full h-full object-cover" />
+                            <Image
+                              src={getBookImageUrl(item.bookId)}
+                              alt={item.bookId.title}
+                              fill
+                              sizes="(max-width: 640px) 80px, 96px"
+                              className="object-cover"
+                              unoptimized
+                            />
                           ) : (
                             <span className="flex items-center justify-center h-full text-2xl">📚</span>
                           )}

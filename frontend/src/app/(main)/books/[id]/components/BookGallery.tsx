@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { BookImage } from "@/types";
 
 interface BookGalleryProps {
@@ -25,7 +26,14 @@ export function BookGallery({ images, title }: BookGalleryProps) {
   return (
     <div className="w-full md:w-5/12 flex flex-col gap-4">
       <div className="aspect-[3/4] bg-muted rounded-xl overflow-hidden relative border border-border">
-        <img src={imageUrls[currentIndex]} alt={title} className="w-full h-full object-cover" />
+        <Image
+          src={imageUrls[currentIndex]}
+          alt={title}
+          fill
+          sizes="(max-width: 768px) 100vw, 40vw"
+          className="object-cover"
+          unoptimized
+        />
       </div>
       {imageUrls.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-2">
@@ -33,9 +41,16 @@ export function BookGallery({ images, title }: BookGalleryProps) {
             <div 
               key={idx} 
               onClick={() => setCurrentIndex(idx)}
-              className={`w-16 h-16 rounded-md overflow-hidden flex-shrink-0 cursor-pointer border-2 ${idx === currentIndex ? 'border-primary' : 'border-transparent hover:border-primary/50'}`}
+              className={`relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 cursor-pointer border-2 ${idx === currentIndex ? 'border-primary' : 'border-transparent hover:border-primary/50'}`}
             >
-              <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
+              <Image
+                src={img}
+                alt={`Thumbnail ${idx}`}
+                fill
+                sizes="64px"
+                className="object-cover"
+                unoptimized
+              />
             </div>
           ))}
         </div>

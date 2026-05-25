@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { BookCard } from "@/components/ui/BookCard";
 import { useFetch } from "@/hooks/useFetch";
@@ -42,10 +43,13 @@ export default function HomePage() {
           <div className="md:w-1/2 flex justify-center lg:justify-end relative">
             <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-secondary/20 rounded-full blur-3xl -z-10"></div>
             <div className="relative w-full max-w-md aspect-square bg-white rounded-3xl p-6 shadow-2xl shadow-black/5 rotate-3 hover:rotate-0 transition-transform duration-500">
-              <img 
-                src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800&q=80" 
-                alt="Sách cũ" 
-                className="w-full h-full object-cover rounded-2xl"
+              <Image
+                src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800&q=80"
+                alt="Sách cũ"
+                fill
+                sizes="(max-width: 768px) 100vw, 448px"
+                className="object-cover rounded-2xl"
+                unoptimized
               />
             </div>
           </div>

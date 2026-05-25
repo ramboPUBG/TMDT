@@ -15,6 +15,16 @@ import {
 import { Address, AddressDocument } from './schemas/address.schema';
 import { PaginatedResult } from '../../common/dto/pagination.dto';
 
+type SellerProfileUpdate = {
+  shopName?: string;
+  description?: string;
+  bankAccount?: {
+    bankName?: string;
+    accountNumber?: string;
+    accountHolder?: string;
+  };
+};
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -47,9 +57,11 @@ export class UsersService {
   }
 
   async findByEmail(email: string): Promise<UserDocument | null> {
-    return this.userModel
+    const user = await this.userModel
       .findOne({ email: email.toLowerCase() })
-      .select('+password +refreshToken');
+      .select('+password +refreshToken')
+      .exec();
+    return user;
   }
 
   async findByGoogleId(googleId: string): Promise<UserDocument | null> {
@@ -102,9 +114,11 @@ export class UsersService {
   }
 
   async findByResetOtp(email: string): Promise<UserDocument | null> {
-    return this.userModel
+    const user = await this.userModel
       .findOne({ email: email.toLowerCase() })
-      .select('+resetPasswordOtp +resetPasswordExpires');
+      .select('+resetPasswordOtp +resetPasswordExpires')
+      .exec();
+    return user;
   }
 
   async updateLastLogin(userId: string): Promise<void> {
@@ -146,6 +160,46 @@ export class UsersService {
       throw new NotFoundException('Không tìm thấy người bán');
     }
     return seller;
+  }
+
+  async updateSellerProfile(
+    userId: string,
+    data: SellerProfileUpdate,
+  ): Promise<UserDocument> {
+    const update: Record<string, unknown> = {};
+
+    if (data.shopName !== undefined) {
+      update['sellerProfile.shopName'] = data.shopName;
+    }
+    if (data.description !== undefined) {
+      update['sellerProfile.description'] = data.description;
+    }
+    if (data.bankAccount) {
+      if (data.bankAccount.bankName !== undefined) {
+        update['sellerProfile.bankAccount.bankName'] =
+          data.bankAccount.bankName;
+      }
+      if (data.bankAccount.accountNumber !== undefined) {
+        update['sellerProfile.bankAccount.accountNumber'] =
+          data.bankAccount.accountNumber;
+      }
+      if (data.bankAccount.accountHolder !== undefined) {
+        update['sellerProfile.bankAccount.accountHolder'] =
+          data.bankAccount.accountHolder;
+      }
+    }
+
+    const user = await this.userModel.findOneAndUpdate(
+      { _id: userId, role: { $in: [UserRole.SELLER, UserRole.ADMIN] } },
+      { $set: update },
+      { new: true },
+    );
+
+    if (!user) {
+      throw new NotFoundException('KhÃ´ng tÃ¬m tháº¥y ngÆ°á»i bÃ¡n');
+    }
+
+    return user;
   }
 
   // ========== ADMIN ==========
