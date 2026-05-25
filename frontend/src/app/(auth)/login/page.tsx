@@ -8,8 +8,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import api from "@/lib/api";
-import { useAuthStore } from "@/stores/authStore";
+import api from "@/services/api";
+import { useAuthStore, User } from "@/stores/authStore";
 
 const loginSchema = z.object({
   email: z.string().email("Email không hợp lệ"),
@@ -17,6 +17,23 @@ const loginSchema = z.object({
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
+
+interface AuthResponse {
+  success: boolean;
+  data: {
+    user: User;
+    accessToken: string;
+    refreshToken: string;
+  };
+}
+
+function getErrorMessage(err: unknown, fallback: string) {
+  if (typeof err === "object" && err !== null && "response" in err) {
+    const response = (err as { response?: { data?: { message?: string } } }).response;
+    return response?.data?.message || fallback;
+  }
+  return fallback;
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,7 +53,7 @@ export default function LoginPage() {
     try {
       setIsLoading(true);
       setError("");
-      const response: any = await api.post("/auth/login", data);
+      const response = await api.post("/auth/login", data) as AuthResponse;
       
       if (response.success) {
         setAuth(
@@ -46,8 +63,8 @@ export default function LoginPage() {
         );
         router.push("/");
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Đăng nhập thất bại");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Đăng nhập thất bại"));
     } finally {
       setIsLoading(false);
     }

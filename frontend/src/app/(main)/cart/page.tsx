@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
@@ -10,362 +9,155 @@ import { Badge } from "@/components/ui/Badge";
 import { useAuthStore } from "@/stores/authStore";
 import { useCartStore } from "@/stores/cartStore";
 
-// Mock Data grouped by seller
-const initialCartData = [
-  {
-    sellerId: "s1",
-    sellerName: "Tiệm sách cũ Cô Ba",
-    items: [
-      {
-        id: "1",
-        title: "📚 ĐÔI CÁNH - Tuyển tập truyện ngắn Nga đương đại Moscow Edition hiếm sưu tầm bìa cứng",
-        price: 550000,
-        originalPrice: 700000,
-        condition: "like_new",
-        imageUrl: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800",
-        quantity: 1,
-        selected: true
-      }
-    ]
-  },
-  {
-    sellerId: "s2",
-    sellerName: "Mọt Sách SG",
-    items: [
-      {
-        id: "2",
-        title: "Sapiens: Lược sử loài người",
-        price: 120000,
-        originalPrice: 195000,
-        condition: "good",
-        imageUrl: "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?w=500&q=80",
-        quantity: 1,
-        selected: true
-      },
-      {
-        id: "3",
-        title: "Đắc Nhân Tâm",
-        price: 35000,
-        originalPrice: 86000,
-        condition: "fair",
-        imageUrl: "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=500&q=80",
-        quantity: 1,
-        selected: false
-      }
-    ]
-  }
-];
-
 export default function CartPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
-  const removeItemFromStore = useCartStore(state => state.removeItem);
-  const [mounted, setMounted] = useState(false);
-  const [cart, setCart] = useState<any[]>([]);
+  const { items: cart, isLoading, fetchCart, updateItemQuantity, removeItem, toggleItemSelection } = useCartStore();
 
   useEffect(() => {
-    setMounted(true);
-    const savedCart = localStorage.getItem('local_cart_data');
-    if (savedCart) {
-      setCart(JSON.parse(savedCart));
-    } else {
-      setCart(initialCartData);
-      localStorage.setItem('local_cart_data', JSON.stringify(initialCartData));
+    if (!isAuthenticated) {
+      router.push('/login?redirect=/cart');
+      return;
     }
-  }, []);
+    fetchCart();
+  }, [isAuthenticated, router, fetchCart]);
 
-  // Save cart to local storage whenever it changes to support F5
-  useEffect(() => {
-    if (mounted) {
-      localStorage.setItem('local_cart_data', JSON.stringify(cart));
+  const handleUpdateQuantity = (itemId: string, currentQty: number, delta: number) => {
+    const newQty = currentQty + delta;
+    if (newQty < 1) return;
+    updateItemQuantity(itemId, newQty);
+  };
+
+  const handleRemove = (itemId: string) => {
+    if (confirm("B?n có ch?c mu?n xóa s?n ph?m này kh?i gi? hàng?")) {
+      removeItem(itemId);
     }
-  }, [cart, mounted]);
-
-  // Toggle selection for a single item
-  const toggleItem = (sellerId: string, itemId: string) => {
-    setCart(cart.map(seller => {
-      if (seller.sellerId === sellerId) {
-        return {
-          ...seller,
-          items: seller.items.map((item: any) => 
-            item.id === itemId ? { ...item, selected: !item.selected } : item
-          )
-        };
-      }
-      return seller;
-    }));
   };
 
-  // Toggle selection for all items in a seller group
-  const toggleSellerGroup = (sellerId: string) => {
-    setCart(cart.map(seller => {
-      if (seller.sellerId === sellerId) {
-        const allSelected = seller.items.every((i: any) => i.selected);
-        return {
-          ...seller,
-          items: seller.items.map((item: any) => ({ ...item, selected: !allSelected }))
-        };
-      }
-      return seller;
-    }));
+  const handleSelect = (itemId: string, checked: boolean) => {
+    toggleItemSelection(itemId, checked);
   };
 
-  // Toggle all items in the cart
-  const toggleAll = () => {
-    const allSelected = cart.every(s => s.items.every((i: any) => i.selected));
-    setCart(cart.map(seller => ({
-      ...seller,
-      items: seller.items.map((item: any) => ({ ...item, selected: !allSelected }))
-    })));
-  };
+  // Tính toán t?ng ti?n
+  const selectedItems = cart.flatMap(group => group.items).filter(item => item.selected);
+  const totalAmount = selectedItems.reduce((sum, item) => sum + (item.bookId.sellingPrice * item.quantity), 0);
+  const totalOriginalAmount = selectedItems.reduce((sum, item) => sum + ((item.bookId.originalPrice || item.bookId.sellingPrice) * item.quantity), 0);
+  const discount = totalOriginalAmount - totalAmount;
 
-  // Update item quantity
-  const updateQuantity = (sellerId: string, itemId: string, change: number) => {
-    setCart(cart.map(seller => {
-      if (seller.sellerId === sellerId) {
-        return {
-          ...seller,
-          items: seller.items.map((item: any) => {
-            if (item.id === itemId) {
-              const newQuantity = Math.max(1, item.quantity + change);
-              return { ...item, quantity: newQuantity };
-            }
-            return item;
-          })
-        };
-      }
-      return seller;
-    }));
-  };
-
-  // Remove item from cart
-  const removeItem = (sellerId: string, itemId: string) => {
-    setCart(cart.map(seller => {
-      if (seller.sellerId === sellerId) {
-        return {
-          ...seller,
-          items: seller.items.filter((item: any) => item.id !== itemId)
-        };
-      }
-      return seller;
-    }).filter(seller => seller.items.length > 0)); // Loại bỏ luôn người bán nếu không còn sách nào
-
-    // Decrease the header cart icon
-    removeItemFromStore();
-  };
-
-  // Calculate totals
-  let totalItems = 0;
-  let totalPrice = 0;
-  let totalDiscount = 0;
-
-  const isAllSelected = cart.length > 0 && cart.every(s => s.items.every((i: any) => i.selected));
-
-  cart.forEach(seller => {
-    seller.items.forEach((item: any) => {
-      if (item.selected) {
-        totalItems += item.quantity;
-        totalPrice += item.price * item.quantity;
-        if (item.originalPrice) {
-          totalDiscount += (item.originalPrice - item.price) * item.quantity;
-        }
-      }
-    });
-  });
-
-  const handleCheckout = () => {
-    const selectedCart = cart.map(seller => ({
-      ...seller,
-      items: seller.items.filter((item: any) => item.selected)
-    })).filter(seller => seller.items.length > 0);
-
-    localStorage.setItem('checkout_session', JSON.stringify(selectedCart));
-    router.push('/checkout');
-  };
+  if (isLoading) {
+    return <div className="container mx-auto py-16 text-center">Ðang t?i gi? hàng...</div>;
+  }
 
   return (
-    <div className="bg-muted/30 min-h-screen pb-24 md:pb-16 pt-6">
-      <div className="container mx-auto px-4">
-        <h1 className="text-2xl font-bold text-foreground mb-6">Giỏ hàng của bạn</h1>
+    <div className="bg-muted/30 min-h-screen pb-16">
+      <div className="bg-white border-b border-border">
+        <div className="container mx-auto px-4 py-4 md:py-6">
+          <h1 className="text-2xl font-bold text-foreground">Gi? hàng c?a b?n</h1>
+        </div>
+      </div>
 
-        {!mounted ? (
-          <div className="text-center p-12 text-muted-foreground">Đang tải...</div>
-        ) : !isAuthenticated ? (
-          <div className="bg-white p-12 rounded-2xl border border-border text-center flex flex-col items-center">
-            <div className="w-32 h-32 mb-6 bg-muted rounded-full flex items-center justify-center text-5xl">🔒</div>
-            <h2 className="text-xl font-bold text-foreground mb-2">Vui lòng đăng nhập</h2>
-            <p className="text-muted-foreground mb-6">Bạn cần đăng nhập để xem giỏ hàng và tiến hành thanh toán.</p>
-            <Link href="/login?redirect=/cart">
-              <Button size="lg">Đăng nhập ngay</Button>
-            </Link>
-          </div>
-        ) : cart.length === 0 ? (
-          <div className="bg-white p-12 rounded-2xl border border-border text-center flex flex-col items-center">
-            <div className="w-32 h-32 mb-6 bg-muted rounded-full flex items-center justify-center text-5xl">🛒</div>
-            <h2 className="text-xl font-bold text-foreground mb-2">Giỏ hàng trống</h2>
-            <p className="text-muted-foreground mb-6">Bạn chưa chọn mua cuốn sách nào. Hãy khám phá ngay nhé!</p>
-            <Link href="/books">
-              <Button size="lg">Khám phá sách ngay</Button>
-            </Link>
+      <div className="container mx-auto px-4 mt-6">
+        {cart.length === 0 ? (
+          <div className="bg-white rounded-2xl p-8 text-center border border-border flex flex-col items-center justify-center min-h-[400px]">
+            <div className="w-24 h-24 mb-6 text-muted-foreground/30">??</div>
+            <h2 className="text-xl font-bold text-foreground mb-2">Gi? hàng tr?ng</h2>
+            <p className="text-muted-foreground mb-6">Chua có s?n ph?m nào trong gi? hàng c?a b?n.</p>
+            <Button onClick={() => router.push('/books')} size="lg">Ti?p t?c mua s?m</Button>
           </div>
         ) : (
           <div className="flex flex-col lg:flex-row gap-6">
-            {/* LEFT: Cart Items list */}
-            <div className="w-full lg:w-8/12 flex flex-col gap-4">
-              
-              {/* Select All Checkbox - Header */}
-              <div className="bg-white p-4 rounded-xl border border-border flex items-center gap-4">
-                <input 
-                  type="checkbox" 
-                  checked={isAllSelected}
-                  onChange={toggleAll}
-                  className="w-5 h-5 rounded border-muted text-primary focus:ring-primary cursor-pointer accent-primary" 
-                />
-                <span className="font-medium text-foreground">Chọn tất cả ({cart.reduce((acc, curr) => acc + curr.items.length, 0)} sản phẩm)</span>
-              </div>
-
-              {/* List of Sellers & Items */}
-              {cart.map((seller) => {
-                const isSellerAllSelected = seller.items.every((i: any) => i.selected);
-
-                return (
-                  <div key={seller.sellerId} className="bg-white rounded-xl border border-border overflow-hidden">
-                    {/* Seller Header */}
-                    <div className="bg-muted/30 p-4 border-b border-border flex items-center gap-3">
-                      <input 
-                        type="checkbox" 
-                        checked={isSellerAllSelected}
-                        onChange={() => toggleSellerGroup(seller.sellerId)}
-                        className="w-5 h-5 rounded border-muted text-primary focus:ring-primary cursor-pointer accent-primary" 
-                      />
-                      <span className="text-sm">Bán bởi:</span>
-                      <span className="font-bold text-foreground">{seller.sellerName}</span>
-                      <Link href={`/shop/${seller.sellerId}`} className="text-primary text-xs hover:underline ml-2">
-                        Xem shop &gt;
-                      </Link>
-                    </div>
-
-                    {/* Items */}
-                    <div className="flex flex-col divide-y divide-border">
-                      {seller.items.map((item: any) => (
-                        <div key={item.id} className="p-4 flex gap-4">
-                          <div className="pt-2">
-                            <input 
-                              type="checkbox" 
-                              checked={item.selected}
-                              onChange={() => toggleItem(seller.sellerId, item.id)}
-                              className="w-5 h-5 rounded border-muted text-primary focus:ring-primary cursor-pointer accent-primary" 
-                            />
+            <div className="flex-1 flex flex-col gap-4">
+              {cart.map((group, idx) => (
+                <div key={idx} className="bg-white rounded-2xl border border-border p-4 md:p-5">
+                  <div className="flex items-center gap-3 border-b border-border pb-3 mb-4">
+                    <input type="checkbox" className="w-4 h-4 rounded border-border text-primary focus:ring-primary" />
+                    <div className="font-semibold text-foreground">{group.sellerId?.fullName || "Ngu?i bán"}</div>
+                  </div>
+                  <div className="flex flex-col gap-4">
+                    {group.items.map(item => (
+                      <div key={item._id} className="flex gap-4 relative">
+                        <div className="flex items-center pt-2">
+                          <input 
+                            type="checkbox" 
+                            checked={item.selected || false} 
+                            onChange={(e) => handleSelect(item._id, e.target.checked)}
+                            className="w-4 h-4 rounded border-border text-primary focus:ring-primary" 
+                          />
+                        </div>
+                        <div className="w-20 h-24 sm:w-24 sm:h-32 rounded-lg overflow-hidden border border-border bg-muted flex-shrink-0">
+                          {item.bookId?.images?.[0] ? (
+                            <img src={item.bookId.images[0]} alt={item.bookId.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="flex items-center justify-center h-full text-2xl">??</span>
+                          )}
+                        </div>
+                        <div className="flex-1 flex flex-col">
+                          <div className="flex justify-between items-start gap-4">
+                            <Link href={`/books/${item.bookId?._id}`} className="font-semibold text-foreground hover:text-primary line-clamp-2">
+                              {item.bookId?.title}
+                            </Link>
+                            <button onClick={() => handleRemove(item._id)} className="text-muted-foreground hover:text-red-500 transition-colors">???</button>
                           </div>
                           
-                          <Link href={`/books/${item.id}`} className="w-20 h-28 md:w-24 md:h-32 bg-muted rounded-md overflow-hidden flex-shrink-0 border border-border">
-                            <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
-                          </Link>
+                          <div className="mt-2 mb-3">
+                            <Badge variant="secondary" className="bg-muted font-normal">
+                              {item.bookId?.condition === 'like_new' ? 'Nhu m?i' : 'Cu'}
+                            </Badge>
+                          </div>
                           
-                          <div className="flex-1 flex flex-col">
-                            <div className="flex justify-between items-start gap-4">
-                              <Link href={`/books/${item.id}`} className="font-medium text-foreground hover:text-primary line-clamp-2">
-                                {item.title}
-                              </Link>
-                              <button 
-                                className="text-muted-foreground hover:text-destructive p-1" 
-                                title="Xóa"
-                                onClick={() => removeItem(seller.sellerId, item.id)}
-                              >
-                                🗑️
-                              </button>
+                          <div className="mt-auto flex items-end justify-between">
+                            <div className="flex flex-col">
+                              <span className="text-lg font-bold text-primary">{formatPrice(item.bookId?.sellingPrice || 0)}</span>
+                              {item.bookId?.originalPrice && (
+                                <span className="text-xs text-muted-foreground line-through">{formatPrice(item.bookId.originalPrice)}</span>
+                              )}
                             </div>
                             
-                            <div className="mt-1 mb-2">
-                              <Badge variant="secondary" className="bg-secondary/10 text-secondary border-none text-xs">
-                                {item.condition === 'like_new' ? 'Như mới' : 
-                                item.condition === 'good' ? 'Rất tốt' : 
-                                item.condition === 'fair' ? 'Khá' : 'Cũ'}
-                              </Badge>
-                            </div>
-
-                            <div className="mt-auto flex justify-between items-end">
-                              <div>
-                                <div className="font-bold text-primary text-lg">{formatPrice(item.price)}</div>
-                                {item.originalPrice && (
-                                  <div className="text-sm text-muted-foreground line-through">
-                                    {formatPrice(item.originalPrice)}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm text-muted-foreground mr-1 hidden sm:inline">Số lượng:</span>
-                                <div className="flex items-center border border-border rounded-md overflow-hidden">
-                                  <button 
-                                    className="w-7 h-7 flex items-center justify-center text-muted-foreground bg-muted/30 hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50"
-                                    onClick={() => updateQuantity(seller.sellerId, item.id, -1)}
-                                    disabled={item.quantity <= 1}
-                                  >
-                                    -
-                                  </button>
-                                  <div className="w-8 h-7 flex items-center justify-center text-sm font-medium border-l border-r border-border bg-white">
-                                    {item.quantity}
-                                  </div>
-                                  <button 
-                                    className="w-7 h-7 flex items-center justify-center text-muted-foreground bg-muted/30 hover:bg-muted hover:text-foreground transition-colors"
-                                    onClick={() => updateQuantity(seller.sellerId, item.id, 1)}
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                              </div>
+                            <div className="flex items-center border border-border rounded-lg">
+                              <button onClick={() => handleUpdateQuantity(item._id, item.quantity, -1)} className="px-3 py-1 hover:bg-muted">-</button>
+                              <div className="w-10 text-center font-medium border-x border-border py-1">{item.quantity}</div>
+                              <button onClick={() => handleUpdateQuantity(item._id, item.quantity, 1)} className="px-3 py-1 hover:bg-muted">+</button>
                             </div>
                           </div>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
 
-            {/* RIGHT: Order Summary */}
-            <div className="w-full lg:w-4/12">
-              <div className="bg-white p-6 rounded-2xl border border-border sticky top-24">
-                <h2 className="text-lg font-bold text-foreground mb-4">Tóm tắt đơn hàng</h2>
-                
-                <div className="flex flex-col gap-3 mb-6 pb-6 border-b border-border text-sm">
+            <div className="w-full lg:w-80 flex-shrink-0">
+              <div className="bg-white rounded-2xl border border-border p-5 sticky top-24">
+                <h3 className="font-bold text-lg mb-4">T?ng quan don hàng</h3>
+                <div className="space-y-3 mb-4 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Tạm tính ({totalItems} sản phẩm)</span>
-                    <span className="font-medium">{formatPrice(totalPrice)}</span>
+                    <span className="text-muted-foreground">T?m tính ({selectedItems.length} SP)</span>
+                    <span className="font-medium">{formatPrice(totalOriginalAmount)}</span>
                   </div>
-                  {totalDiscount > 0 && (
-                    <div className="flex justify-between text-secondary">
-                      <span>Bạn đã tiết kiệm</span>
-                      <span className="font-medium">- {formatPrice(totalDiscount)}</span>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Gi?m giá</span>
+                      <span className="font-medium">- {formatPrice(discount)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Phí vận chuyển</span>
-                    <span className="text-xs text-muted-foreground italic">Tính ở bước thanh toán</span>
+                  <div className="border-t border-border pt-3 flex justify-between items-end">
+                    <span className="font-bold">T?ng ti?n</span>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-primary">{formatPrice(totalAmount)}</div>
+                      <div className="text-xs text-muted-foreground mt-1">Chua bao g?m phí v?n chuy?n</div>
+                    </div>
                   </div>
                 </div>
-
-                <div className="flex justify-between items-end mb-6">
-                  <span className="font-bold text-foreground">Tổng cộng</span>
-                  <div className="text-right">
-                    <span className="text-2xl font-bold text-primary">{formatPrice(totalPrice)}</span>
-                    <p className="text-xs text-muted-foreground mt-1">Đã bao gồm VAT (nếu có)</p>
-                  </div>
-                </div>
-
+                
                 <Button 
-                  size="lg" 
-                  className="w-full shadow-lg shadow-primary/20"
-                  disabled={totalItems === 0}
-                  onClick={handleCheckout}
+                  className="w-full" 
+                  size="lg"
+                  disabled={selectedItems.length === 0}
+                  onClick={() => router.push('/checkout')}
                 >
-                  Mua hàng ({totalItems})
+                  Mua hàng ({selectedItems.length})
                 </Button>
-
-                <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                  <span>🛡️</span> Thanh toán an toàn, hoàn tiền 100% nếu lỗi
-                </div>
               </div>
             </div>
           </div>

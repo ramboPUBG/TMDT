@@ -8,8 +8,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import api from "@/lib/api";
-import { useAuthStore } from "@/stores/authStore";
+import api from "@/services/api";
+import { useAuthStore, User } from "@/stores/authStore";
 
 const registerSchema = z.object({
   fullName: z.string().min(2, "Họ tên phải có ít nhất 2 ký tự"),
@@ -22,6 +22,23 @@ const registerSchema = z.object({
 });
 
 type RegisterForm = z.infer<typeof registerSchema>;
+
+interface AuthResponse {
+  success: boolean;
+  data: {
+    user: User;
+    accessToken: string;
+    refreshToken: string;
+  };
+}
+
+function getErrorMessage(err: unknown, fallback: string) {
+  if (typeof err === "object" && err !== null && "response" in err) {
+    const response = (err as { response?: { data?: { message?: string } } }).response;
+    return response?.data?.message || fallback;
+  }
+  return fallback;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -43,7 +60,7 @@ export default function RegisterPage() {
       setError("");
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { confirmPassword, ...registerData } = data;
-      const response: any = await api.post("/auth/register", registerData);
+      const response = await api.post("/auth/register", registerData) as AuthResponse;
       
       if (response.success) {
         setAuth(
@@ -53,8 +70,8 @@ export default function RegisterPage() {
         );
         router.push("/");
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Đăng ký thất bại");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Đăng ký thất bại"));
     } finally {
       setIsLoading(false);
     }

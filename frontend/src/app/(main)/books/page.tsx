@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { BookCard } from "@/components/ui/BookCard";
-import api from "@/lib/api";
+import api from "@/services/api";
+import { Book, PaginatedBooks } from "@/types";
 
 // Mock Categories (still mocked for UI until we build Category API fully)
 const mockCategories = [
@@ -33,7 +34,7 @@ function BooksContent() {
   const [author, setAuthor] = useState(searchParams.get("author") || "");
   const [publisher, setPublisher] = useState(searchParams.get("publisher") || "");
 
-  const [books, setBooks] = useState<any[]>([]);
+  const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
 
   const activeCategory = mockCategories.find(c => c.id === categoryParam) || null;
@@ -43,8 +44,8 @@ function BooksContent() {
       setLoading(true);
       try {
         const query = searchParams.toString();
-        const { data } = await api.get(`/books?${query}`);
-        setBooks(data.data || []);
+        const result = await api.get(`/books?${query}`) as PaginatedBooks;
+        setBooks(result.data || []);
       } catch (error) {
         console.error("Failed to fetch books", error);
         // Fallback to empty array if API fails
@@ -235,8 +236,18 @@ function BooksContent() {
               </div>
             ) : books.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
-                {books.map((book: any) => (
-                  <BookCard key={book._id} {...book} id={book._id} sellerName={book.sellerId?.name || 'Ẩn danh'} imageUrl={book.images?.[0]?.url || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800'} />
+                {books.map((book) => (
+                  <BookCard
+                    key={book._id}
+                    id={book._id}
+                    title={book.title}
+                    author={book.author}
+                    price={book.sellingPrice}
+                    originalPrice={book.originalPrice}
+                    condition={book.condition}
+                    sellerName={book.sellerId?.fullName || 'Ẩn danh'}
+                    imageUrl={book.images?.[0] || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800'}
+                  />
                 ))}
               </div>
             ) : (

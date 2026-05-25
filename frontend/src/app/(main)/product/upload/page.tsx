@@ -4,8 +4,32 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
-import api from "@/lib/api";
+import api from "@/services/api";
 import { useAuthStore } from "@/stores/authStore";
+
+interface UploadedImage {
+  url: string;
+  publicId: string;
+}
+
+interface UploadImagesResponse {
+  data: UploadedImage[];
+}
+
+interface CreateBookResponse {
+  data?: {
+    _id?: string;
+  };
+  _id?: string;
+}
+
+function getErrorMessage(err: unknown, fallback: string) {
+  if (typeof err === "object" && err !== null && "response" in err) {
+    const response = (err as { response?: { data?: { message?: string } } }).response;
+    return response?.data?.message || fallback;
+  }
+  return fallback;
+}
 
 // Mock Categories
 const mockCategories = [
@@ -18,7 +42,7 @@ const mockCategories = [
 
 export default function UploadBookPage() {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [images, setImages] = useState<File[]>([]);
@@ -94,13 +118,13 @@ export default function UploadBookPage() {
       const formData = new FormData();
       images.forEach(img => formData.append("files", img));
 
-      const uploadRes: any = await api.post("/upload/images", formData, {
+      const uploadRes = await api.post("/upload/images", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
-      });
+      }) as UploadImagesResponse;
 
-      const uploadedImages = uploadRes.data.map((img: any) => ({
+      const uploadedImages = uploadRes.data.map((img) => ({
         url: img.url,
         publicId: img.publicId,
       }));
@@ -118,13 +142,13 @@ export default function UploadBookPage() {
         images: uploadedImages,
       };
 
-      const bookRes: any = await api.post("/books", bookData);
+      const bookRes = await api.post("/books", bookData) as CreateBookResponse;
 
       // 3. Redirect to book detail
-      router.push(`/books/${bookRes.data?._id || ''}`);
-    } catch (err: any) {
+      router.push(`/books/${bookRes.data?._id || bookRes._id || ''}`);
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.response?.data?.message || "Có lỗi xảy ra khi đăng bán sách");
+      setError(getErrorMessage(err, "Có lỗi xảy ra khi đăng bán sách"));
     } finally {
       setLoading(false);
     }
