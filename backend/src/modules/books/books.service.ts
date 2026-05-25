@@ -25,10 +25,19 @@ export class BooksService {
       sort,
     } = filterDto;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const query: any = { status: BookStatus.APPROVED };
 
-    if (q) {
-      query.$text = { $search: q };
+    if (q?.trim()) {
+      const keyword = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(keyword, 'i');
+      query.$or = [
+        { title: regex },
+        { author: regex },
+        { description: regex },
+        { publisher: regex },
+        { tags: regex },
+      ];
     }
 
     const catId = categoryId || category;
@@ -99,10 +108,13 @@ export class BooksService {
   }
 
   async create(createBookDto: CreateBookDto, sellerId: string): Promise<Book> {
-    const slug = createBookDto.title
-      .toLowerCase()
-      .replace(/[^a-z0-9\u00C0-\u024F\u1E00-\u1EFF]+/gi, '-') // support Vietnamese characters partially or rely on simple dash
-      .replace(/(^-|-$)+/g, '') + '-' + Date.now();
+    const slug =
+      createBookDto.title
+        .toLowerCase()
+        .replace(/[^a-z0-9\u00C0-\u024F\u1E00-\u1EFF]+/gi, '-') // support Vietnamese characters partially or rely on simple dash
+        .replace(/(^-|-$)+/g, '') +
+      '-' +
+      Date.now();
 
     const createdBook = new this.bookModel({
       ...createBookDto,

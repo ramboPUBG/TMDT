@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -35,8 +36,10 @@ function getErrorMessage(err: unknown, fallback: string) {
   return fallback;
 }
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect") || "/";
   const setAuth = useAuthStore((state) => state.setAuth);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -61,7 +64,7 @@ export default function LoginPage() {
           response.data.accessToken,
           response.data.refreshToken
         );
-        router.push("/");
+        router.push(redirect);
       }
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Đăng nhập thất bại"));
@@ -125,5 +128,13 @@ export default function LoginPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-8">Đang tải...</div>}>
+      <LoginPageContent />
+    </Suspense>
   );
 }

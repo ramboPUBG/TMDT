@@ -1,4 +1,13 @@
-import { IsString, IsNotEmpty, IsArray, ValidateNested, IsEnum, IsNumber, Min, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsArray,
+  ValidateNested,
+  IsEnum,
+  IsNumber,
+  Min,
+  IsOptional,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { PaymentMethod } from '../schemas/order.schema';
 

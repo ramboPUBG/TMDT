@@ -93,7 +93,7 @@ export default function HomePage() {
               <h2 className="text-2xl font-bold text-foreground mb-2">Sách vừa đăng bán</h2>
               <p className="text-muted-foreground">Những cuốn sách mới nhất vừa được cộng đồng chia sẻ</p>
             </div>
-            <Link href="/books?sort=newest" className="text-primary font-medium hover:underline hidden sm:block">
+            <Link href="/books" className="text-primary font-medium hover:underline hidden sm:block">
               Xem tất cả
             </Link>
           </div>

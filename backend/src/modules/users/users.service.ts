@@ -1,8 +1,17 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as bcrypt from 'bcrypt';
-import { User, UserDocument, UserRole, UserStatus } from './schemas/user.schema';
+import {
+  User,
+  UserDocument,
+  UserRole,
+  UserStatus,
+} from './schemas/user.schema';
 import { Address, AddressDocument } from './schemas/address.schema';
 import { PaginatedResult } from '../../common/dto/pagination.dto';
 
@@ -38,7 +47,9 @@ export class UsersService {
   }
 
   async findByEmail(email: string): Promise<UserDocument | null> {
-    return this.userModel.findOne({ email: email.toLowerCase() }).select('+password +refreshToken');
+    return this.userModel
+      .findOne({ email: email.toLowerCase() })
+      .select('+password +refreshToken');
   }
 
   async findByGoogleId(googleId: string): Promise<UserDocument | null> {
@@ -197,7 +208,9 @@ export class UsersService {
   // ========== ADDRESSES ==========
 
   async getAddresses(userId: string): Promise<AddressDocument[]> {
-    return this.addressModel.find({ userId }).sort({ isDefault: -1, createdAt: -1 });
+    return this.addressModel
+      .find({ userId })
+      .sort({ isDefault: -1, createdAt: -1 });
   }
 
   async createAddress(
@@ -206,10 +219,7 @@ export class UsersService {
   ): Promise<AddressDocument> {
     // If this is the first address or set as default, reset others
     if (data.isDefault) {
-      await this.addressModel.updateMany(
-        { userId },
-        { isDefault: false },
-      );
+      await this.addressModel.updateMany({ userId }, { isDefault: false });
     }
 
     const addressCount = await this.addressModel.countDocuments({ userId });
@@ -227,10 +237,7 @@ export class UsersService {
     data: Partial<Address>,
   ): Promise<AddressDocument> {
     if (data.isDefault) {
-      await this.addressModel.updateMany(
-        { userId },
-        { isDefault: false },
-      );
+      await this.addressModel.updateMany({ userId }, { isDefault: false });
     }
 
     const address = await this.addressModel.findOneAndUpdate(

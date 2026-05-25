@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Category, CategoryDocument } from './schemas/category.schema';
@@ -15,7 +19,10 @@ export class CategoriesService {
     const filter: Record<string, unknown> = {};
     if (activeOnly) filter.isActive = true;
 
-    const categories = await this.categoryModel.find(filter).sort({ order: 1, name: 1 }).lean();
+    const categories = await this.categoryModel
+      .find(filter)
+      .sort({ order: 1, name: 1 })
+      .lean();
 
     const categoryIds = categories.map((cat) => cat._id);
     const counts = await this.bookModel.aggregate([
@@ -147,16 +154,56 @@ export class CategoriesService {
     if (count > 0) return;
 
     const categories = [
-      { name: 'Sách giáo khoa & Tham khảo', slug: 'sach-giao-khoa', icon: '📖', order: 1 },
-      { name: 'Tiểu thuyết & Văn học', slug: 'tieu-thuyet-van-hoc', icon: '📚', order: 2 },
+      {
+        name: 'Sách giáo khoa & Tham khảo',
+        slug: 'sach-giao-khoa',
+        icon: '📖',
+        order: 1,
+      },
+      {
+        name: 'Tiểu thuyết & Văn học',
+        slug: 'tieu-thuyet-van-hoc',
+        icon: '📚',
+        order: 2,
+      },
       { name: 'Sách thiếu nhi', slug: 'sach-thieu-nhi', icon: '🧒', order: 3 },
-      { name: 'Sách kỹ năng & Self-help', slug: 'sach-ky-nang', icon: '💡', order: 4 },
-      { name: 'Sách kinh tế & Kinh doanh', slug: 'sach-kinh-te', icon: '📊', order: 5 },
+      {
+        name: 'Sách kỹ năng & Self-help',
+        slug: 'sach-ky-nang',
+        icon: '💡',
+        order: 4,
+      },
+      {
+        name: 'Sách kinh tế & Kinh doanh',
+        slug: 'sach-kinh-te',
+        icon: '📊',
+        order: 5,
+      },
       { name: 'Sách ngoại ngữ', slug: 'sach-ngoai-ngu', icon: '🌐', order: 6 },
-      { name: 'Truyện tranh (Manga/Comic)', slug: 'truyen-tranh', icon: '🎨', order: 7 },
-      { name: 'Sách khoa học & Công nghệ', slug: 'sach-khoa-hoc', icon: '🔬', order: 8 },
-      { name: 'Sách lịch sử & Văn hóa', slug: 'sach-lich-su', icon: '🏛️', order: 9 },
-      { name: 'Từ điển & Sách tra cứu', slug: 'tu-dien', icon: '📕', order: 10 },
+      {
+        name: 'Truyện tranh (Manga/Comic)',
+        slug: 'truyen-tranh',
+        icon: '🎨',
+        order: 7,
+      },
+      {
+        name: 'Sách khoa học & Công nghệ',
+        slug: 'sach-khoa-hoc',
+        icon: '🔬',
+        order: 8,
+      },
+      {
+        name: 'Sách lịch sử & Văn hóa',
+        slug: 'sach-lich-su',
+        icon: '🏛️',
+        order: 9,
+      },
+      {
+        name: 'Từ điển & Sách tra cứu',
+        slug: 'tu-dien',
+        icon: '📕',
+        order: 10,
+      },
     ];
 
     await this.categoryModel.insertMany(categories);

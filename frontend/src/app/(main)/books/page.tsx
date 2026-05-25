@@ -17,6 +17,7 @@ function BooksContent() {
   const { data: categoriesResult } = useFetch<ApiResponse<Category[]>>('/categories');
   const categories = categoriesResult?.data || [];
   
+  const qParam = searchParams.get("q") || "";
   const categoryParam = searchParams.get("category") || "";
   const conditionParam = searchParams.get("condition") || "";
   const sortParam = searchParams.get("sort") || "newest";
@@ -75,7 +76,11 @@ function BooksContent() {
           <Link href="/" className="hover:text-primary">Trang chủ</Link>
           <span>/</span>
           <span className="text-foreground font-medium">
-            {activeCategory ? activeCategory.name : "Tất cả sách"}
+            {qParam
+              ? `Kết quả: "${qParam}"`
+              : activeCategory
+                ? activeCategory.name
+                : "Tất cả sách"}
           </span>
         </div>
 
@@ -202,7 +207,11 @@ function BooksContent() {
             {/* Top Toolbar */}
             <div className="bg-white p-4 rounded-2xl border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <h1 className="text-xl font-bold text-foreground">
-                {activeCategory ? `Sách ${activeCategory.name}` : "Tất cả sách"}
+                {qParam
+                  ? `Tìm kiếm: "${qParam}"`
+                  : activeCategory
+                    ? `Sách ${activeCategory.name}`
+                    : "Tất cả sách"}
               </h1>
               
               <div className="flex items-center gap-3">

@@ -9,7 +9,10 @@ export interface CloudinaryResponse {
 
 @Injectable()
 export class UploadService {
-  async uploadImage(file: Express.Multer.File, folder: string = 'sachcu'): Promise<CloudinaryResponse> {
+  async uploadImage(
+    file: Express.Multer.File,
+    folder: string = 'sachcu',
+  ): Promise<CloudinaryResponse> {
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
@@ -20,7 +23,9 @@ export class UploadService {
         },
         (error, result) => {
           if (error || !result) {
-            return reject(new BadRequestException('Lỗi khi upload ảnh lên Cloudinary'));
+            return reject(
+              new BadRequestException('Lỗi khi upload ảnh lên Cloudinary'),
+            );
           }
           resolve({
             url: result.secure_url,
@@ -36,7 +41,10 @@ export class UploadService {
     });
   }
 
-  async uploadMultipleImages(files: Express.Multer.File[], folder: string = 'sachcu'): Promise<CloudinaryResponse[]> {
+  async uploadMultipleImages(
+    files: Express.Multer.File[],
+    folder: string = 'sachcu',
+  ): Promise<CloudinaryResponse[]> {
     if (!files || files.length === 0) {
       throw new BadRequestException('Không có file nào được tải lên');
     }
@@ -52,7 +60,7 @@ export class UploadService {
   async deleteImage(publicId: string): Promise<void> {
     try {
       await cloudinary.uploader.destroy(publicId);
-    } catch (error) {
+    } catch {
       throw new BadRequestException('Lỗi khi xóa ảnh trên Cloudinary');
     }
   }
