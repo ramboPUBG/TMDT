@@ -1,16 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { BookImage } from "@/types";
 
 interface BookGalleryProps {
-  images: string[];
+  images: Array<string | BookImage>;
   title: string;
 }
 
 export function BookGallery({ images, title }: BookGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const imageUrls = images
+    ?.map((image) => (typeof image === "string" ? image : image.url))
+    .filter(Boolean) || [];
 
-  if (!images || images.length === 0) {
+  if (imageUrls.length === 0) {
     return (
       <div className="w-full aspect-[3/4] bg-muted flex items-center justify-center rounded-xl border border-border">
         <span className="text-4xl text-muted-foreground">📚</span>
@@ -21,11 +25,11 @@ export function BookGallery({ images, title }: BookGalleryProps) {
   return (
     <div className="w-full md:w-5/12 flex flex-col gap-4">
       <div className="aspect-[3/4] bg-muted rounded-xl overflow-hidden relative border border-border">
-        <img src={images[currentIndex]} alt={title} className="w-full h-full object-cover" />
+        <img src={imageUrls[currentIndex]} alt={title} className="w-full h-full object-cover" />
       </div>
-      {images.length > 1 && (
+      {imageUrls.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-2">
-          {images.map((img, idx) => (
+          {imageUrls.map((img, idx) => (
             <div 
               key={idx} 
               onClick={() => setCurrentIndex(idx)}

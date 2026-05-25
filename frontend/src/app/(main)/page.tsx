@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { BookCard } from "@/components/ui/BookCard";
 import { useFetch } from "@/hooks/useFetch";
-import { PaginatedBooks, ApiResponse, Category } from "@/types";
+import { PaginatedBooks, ApiResponse, Category, getBookImageUrl } from "@/types";
 
 export default function HomePage() {
   const { data: categoriesResult, isLoading: isLoadingCategories, error: categoriesError } = useFetch<ApiResponse<Category[]>>('/categories');
@@ -115,8 +115,8 @@ export default function HomePage() {
                   price={book.sellingPrice}
                   originalPrice={book.originalPrice}
                   condition={book.condition}
-                  imageUrl={book.images?.[0] || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=500&q=80'}
-                  sellerName={book.sellerId?.fullName || 'Người bán'}
+                  imageUrl={getBookImageUrl(book, 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=500&q=80')}
+                  sellerName={book.sellerId?.fullName || book.sellerId?.name || 'Người bán'}
                 />
               ))}
             </div>

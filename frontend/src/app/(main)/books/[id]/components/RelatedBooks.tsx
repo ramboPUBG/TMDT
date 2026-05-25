@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { BookCard } from "@/components/ui/BookCard";
 import { useFetch } from "@/hooks/useFetch";
-import { PaginatedBooks } from "@/types";
+import { PaginatedBooks, getBookImageUrl } from "@/types";
 
 export function RelatedBooks({ categoryId, currentBookId }: { categoryId: string; currentBookId: string }) {
   const { data: result, isLoading, error } = useFetch<PaginatedBooks>(
@@ -34,8 +34,8 @@ export function RelatedBooks({ categoryId, currentBookId }: { categoryId: string
             price={book.sellingPrice}
             originalPrice={book.originalPrice}
             condition={book.condition}
-            imageUrl={book.images?.[0] || ''}
-            sellerName={book.sellerId?.fullName || ''}
+            imageUrl={getBookImageUrl(book)}
+            sellerName={book.sellerId?.fullName || book.sellerId?.name || ''}
           />
         ))}
       </div>

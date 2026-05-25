@@ -6,24 +6,16 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { BookCard } from "@/components/ui/BookCard";
 import api from "@/services/api";
-import { Book, PaginatedBooks } from "@/types";
-
-// Mock Categories (still mocked for UI until we build Category API fully)
-const mockCategories = [
-  { id: "1", name: "Văn học", count: 1250 },
-  { id: "2", name: "Kinh tế", count: 840 },
-  { id: "3", name: "Tâm lý - Kỹ năng", count: 920 },
-  { id: "4", name: "Nuôi dạy con", count: 450 },
-  { id: "5", name: "Sách thiếu nhi", count: 1560 },
-  { id: "6", name: "Lịch sử", count: 320 },
-  { id: "7", name: "Ngoại ngữ", count: 780 },
-  { id: "8", name: "Truyện tranh", count: 2100 },
-];
+import { useFetch } from "@/hooks/useFetch";
+import { Book, PaginatedBooks, getBookImageUrl, Category, ApiResponse } from "@/types";
 
 function BooksContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  
+  const { data: categoriesResult } = useFetch<ApiResponse<Category[]>>('/categories');
+  const categories = categoriesResult?.data || [];
   
   const categoryParam = searchParams.get("category") || "";
   const conditionParam = searchParams.get("condition") || "";
@@ -37,7 +29,7 @@ function BooksContent() {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const activeCategory = mockCategories.find(c => c.id === categoryParam) || null;
+  const activeCategory = categories.find(c => c._id === categoryParam) || null;
 
   useEffect(() => {
     const fetchBooks = async () => {
@@ -48,7 +40,6 @@ function BooksContent() {
         setBooks(result.data || []);
       } catch (error) {
         console.error("Failed to fetch books", error);
-        // Fallback to empty array if API fails
         setBooks([]);
       } finally {
         setLoading(false);
@@ -105,14 +96,14 @@ function BooksContent() {
                 >
                   Tất cả danh mục
                 </button>
-                {mockCategories.map(cat => (
+                {categories.map(cat => (
                   <button 
-                    key={cat.id} 
-                    onClick={() => updateFilter("category", cat.id)}
-                    className={`text-left text-sm py-1.5 flex items-center justify-between transition-colors ${categoryParam === cat.id ? 'text-primary font-bold' : 'text-muted-foreground hover:text-primary'}`}
+                    key={cat._id} 
+                    onClick={() => updateFilter("category", cat._id)}
+                    className={`text-left text-sm py-1.5 flex items-center justify-between transition-colors ${categoryParam === cat._id ? 'text-primary font-bold' : 'text-muted-foreground hover:text-primary'}`}
                   >
                     <span>{cat.name}</span>
-                    <span className="text-xs bg-muted px-2 py-0.5 rounded-full">{cat.count}</span>
+                    <span className="text-xs bg-muted px-2 py-0.5 rounded-full">{cat.count || 0}</span>
                   </button>
                 ))}
               </div>
@@ -245,8 +236,8 @@ function BooksContent() {
                     price={book.sellingPrice}
                     originalPrice={book.originalPrice}
                     condition={book.condition}
-                    sellerName={book.sellerId?.fullName || 'Ẩn danh'}
-                    imageUrl={book.images?.[0] || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800'}
+                    sellerName={book.sellerId?.fullName || book.sellerId?.name || 'Ẩn danh'}
+                    imageUrl={getBookImageUrl(book, 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800')}
                   />
                 ))}
               </div>

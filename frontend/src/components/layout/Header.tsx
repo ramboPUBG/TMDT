@@ -7,7 +7,7 @@ import { useDebounceValue } from "usehooks-ts";
 import { useCartStore } from "@/stores/cartStore";
 import { useAuthStore } from "@/stores/authStore";
 import api from "@/services/api";
-import { Book } from "@/types";
+import { Book, getBookImageUrl } from "@/types";
 
 export function Header() {
   const router = useRouter();
@@ -75,7 +75,7 @@ export function Header() {
                   {searchResults.map(book => (
                     <Link onClick={() => setSearchTerm('')} key={book._id} href={`/books/${book._id}`} className="flex items-center gap-3 px-4 py-2 hover:bg-muted transition-colors">
                       <div className="w-10 h-14 bg-muted rounded">
-                        {book.images?.[0] && <img src={book.images[0]} alt={book.title} className="w-full h-full object-cover rounded" />}
+                        {getBookImageUrl(book) && <img src={getBookImageUrl(book)} alt={book.title} className="w-full h-full object-cover rounded" />}
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <div className="text-sm font-medium line-clamp-1">{book.title}</div>
