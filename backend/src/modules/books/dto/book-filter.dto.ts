@@ -1,7 +1,7 @@
 import { IsOptional, IsString, IsEnum, IsNumber, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
-import { BookCondition } from '../schemas/book.schema';
+import { BookCondition, BookStatus } from '../schemas/book.schema';
 
 export class BookFilterDto extends PaginationDto {
   @IsOptional()
@@ -11,6 +11,10 @@ export class BookFilterDto extends PaginationDto {
   @IsOptional()
   @IsString()
   categoryId?: string;
+
+  @IsOptional()
+  @IsString()
+  sellerId?: string;
 
   @IsOptional()
   @IsString()
@@ -49,4 +53,8 @@ export class BookFilterDto extends PaginationDto {
   @IsOptional()
   @IsString()
   sort?: string;
+
+  @IsOptional()
+  @IsEnum(BookStatus)
+  status?: BookStatus;
 }

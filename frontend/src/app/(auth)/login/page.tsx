@@ -64,7 +64,12 @@ function LoginPageContent() {
           response.data.accessToken,
           response.data.refreshToken
         );
-        router.push(redirect);
+        
+        if (response.data.user.role === 'admin') {
+          router.push('/admin');
+        } else {
+          router.push(redirect);
+        }
       }
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Đăng nhập thất bại"));

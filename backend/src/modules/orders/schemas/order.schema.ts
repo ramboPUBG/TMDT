@@ -77,6 +77,9 @@ export class Order extends Document {
 
   @Prop({ required: true })
   totalAmount: number;
+
+  @Prop({ default: 0 })
+  platformFee: number;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);

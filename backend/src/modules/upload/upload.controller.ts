@@ -25,7 +25,7 @@ export class UploadController {
         fileSize: 5 * 1024 * 1024, // 5MB limit
       },
       fileFilter: (req, file, cb) => {
-        if (!file.originalname.match(/\.(jpg|jpeg|png|webp)$/)) {
+        if (!file.originalname.match(/\.(jpg|jpeg|png|webp)$/i)) {
           return cb(
             new BadRequestException(
               'Chỉ chấp nhận file ảnh (jpg, jpeg, png, webp)',
@@ -52,7 +52,7 @@ export class UploadController {
         fileSize: 5 * 1024 * 1024, // 5MB per file
       },
       fileFilter: (req, file, cb) => {
-        if (!file.originalname.match(/\.(jpg|jpeg|png|webp)$/)) {
+        if (!file.originalname.match(/\.(jpg|jpeg|png|webp)$/i)) {
           return cb(
             new BadRequestException(
               'Chỉ chấp nhận file ảnh (jpg, jpeg, png, webp)',

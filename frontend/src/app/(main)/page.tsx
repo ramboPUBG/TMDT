@@ -34,9 +34,6 @@ export default function HomePage() {
               <Link href="/books" className="bg-primary text-white px-8 py-3 rounded-full font-medium hover:bg-primary/90 transition-all shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-0.5">
                 Mua sách ngay
               </Link>
-              <Link href="/product/upload" className="bg-white text-foreground border border-border px-8 py-3 rounded-full font-medium hover:bg-muted transition-all">
-                Đăng bán sách
-              </Link>
             </div>
           </div>
           
