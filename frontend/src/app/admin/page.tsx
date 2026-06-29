@@ -68,7 +68,7 @@ export default function AdminDashboard() {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} />
                 <YAxis tickFormatter={(v) => `${v / 1000000}M`} axisLine={false} tickLine={false} />
-                <Tooltip formatter={(value: number) => formatPrice(value)} cursor={{ fill: "#f3f4f6" }} />
+                <Tooltip formatter={(value: any) => formatPrice(value)} cursor={{ fill: "#f3f4f6" }} />
                 <Bar dataKey="revenue" name="GMV" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="commission" name="Phí thu được" fill="#f97316" radius={[4, 4, 0, 0]} />
               </BarChart>

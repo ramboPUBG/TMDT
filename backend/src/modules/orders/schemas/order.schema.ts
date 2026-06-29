@@ -53,7 +53,9 @@ export class ShippingAddress {
 }
 
 @Schema({ timestamps: true, collection: 'orders' })
-export class Order extends Document {
+export class Order {
+  _id: Types.ObjectId;
+
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   buyerId: Types.ObjectId;
 
