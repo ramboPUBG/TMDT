@@ -4,12 +4,14 @@ import { Model, Types } from 'mongoose';
 import { Order, OrderDocument, OrderStatus } from './schemas/order.schema';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { Book, BookDocument } from '../books/schemas/book.schema';
+import { WalletService } from '../wallet/wallet.service';
 
 @Injectable()
 export class OrdersService {
   constructor(
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     @InjectModel(Book.name) private bookModel: Model<BookDocument>,
+    private readonly walletService: WalletService,
   ) {}
 
   async createOrders(
@@ -122,8 +124,17 @@ export class OrdersService {
       throw new BadRequestException('Không thể cập nhật trạng thái đơn hàng đã hủy');
     }
 
+    const previousStatus = order.orderStatus;
     order.orderStatus = status;
-    return order.save();
+    const savedOrder = await order.save();
+
+    // Release funds to seller wallet when order is delivered
+    if (status === OrderStatus.DELIVERED && previousStatus !== OrderStatus.DELIVERED) {
+      const netAmount = order.totalAmount - (order.platformFee || 0);
+      await this.walletService.addFunds(order.sellerId.toString(), netAmount);
+    }
+
+    return savedOrder;
   }
 
   async cancelOrder(id: string, userId: string): Promise<OrderDocument> {

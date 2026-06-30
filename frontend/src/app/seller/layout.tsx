@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Book, ShoppingBag, Star, Settings, Menu, X, MessageCircle } from "lucide-react";
+import { LayoutDashboard, Book, ShoppingBag, Star, Settings, Menu, X, MessageCircle, Wallet, LogOut } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 
 export default function SellerLayout({ children }: { children: React.ReactNode }) {
-  const { user, isAuthenticated, hasHydrated } = useAuthStore();
+  const { user, isAuthenticated, hasHydrated, logout } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -37,6 +37,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
     { name: "Quản lý sách", href: "/seller/books", icon: Book },
     { name: "Đơn hàng", href: "/seller/orders", icon: ShoppingBag },
     { name: "Đánh giá", href: "/seller/reviews", icon: Star },
+    { name: "Ví & Rút tiền", href: "/seller/wallet", icon: Wallet },
     { name: "Cài đặt shop", href: "/seller/settings", icon: Settings },
   ];
 
@@ -69,7 +70,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
           })}
         </div>
 
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border flex flex-col gap-2">
           <div className="flex items-center gap-3 px-4 py-3 bg-muted/50 rounded-xl">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
               {user?.fullName?.charAt(0) || "S"}
@@ -79,6 +80,16 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
               <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
             </div>
           </div>
+          <button
+            onClick={() => {
+              logout();
+              router.push("/login");
+            }}
+            className="flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-xl w-full transition-all duration-200 font-medium text-sm"
+          >
+            <LogOut size={18} />
+            Đăng xuất
+          </button>
         </div>
       </aside>
 
@@ -115,6 +126,19 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
                   </Link>
                 );
               })}
+            </div>
+
+            <div className="p-4 border-t border-border mt-auto">
+              <button
+                onClick={() => {
+                  logout();
+                  router.push("/login");
+                }}
+                className="flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-xl w-full transition-all duration-200 font-medium text-sm"
+              >
+                <LogOut size={18} />
+                Đăng xuất
+              </button>
             </div>
           </aside>
         </div>

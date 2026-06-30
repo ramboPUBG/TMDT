@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
-import { LayoutDashboard, BookOpen, ListTree, ShoppingCart, LogOut } from "lucide-react";
+import { LayoutDashboard, BookOpen, ListTree, ShoppingCart, LogOut, Wallet } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -30,6 +30,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: "Quản lý Sách", href: "/admin/books", icon: <BookOpen size={20} /> },
     { label: "Quản lý Danh mục", href: "/admin/categories", icon: <ListTree size={20} /> },
     { label: "Quản lý Đơn hàng", href: "/admin/orders", icon: <ShoppingCart size={20} /> },
+    { label: "Duyệt rút tiền", href: "/admin/withdrawals", icon: <Wallet size={20} /> },
   ];
 
   return (
