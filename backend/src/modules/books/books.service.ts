@@ -9,6 +9,7 @@ import {
 } from './schemas/book.schema';
 import { BookFilterDto } from './dto/book-filter.dto';
 import { CreateBookDto } from './dto/create-book.dto';
+import { UpdateBookDto } from './dto/update-book.dto';
 import { PaginatedResult } from '../../common/dto/pagination.dto';
 
 type RegexFilter = {
@@ -31,6 +32,7 @@ type BookQuery = {
     | { tags: RegExp }
   >;
   categoryId?: Types.ObjectId;
+  sellerId?: Types.ObjectId;
   sellingPrice?: PriceFilter;
   condition?: BookCondition;
   author?: RegexFilter;
@@ -54,6 +56,7 @@ export class BooksService {
       author,
       publisher,
       sort,
+      sellerId,
     } = filterDto;
 
     const query: BookQuery = { status: BookStatus.APPROVED };
@@ -76,6 +79,12 @@ export class BooksService {
         query.categoryId = new Types.ObjectId(catId);
       } else {
         query.categoryId = new Types.ObjectId();
+      }
+    }
+
+    if (sellerId) {
+      if (Types.ObjectId.isValid(sellerId)) {
+        query.sellerId = new Types.ObjectId(sellerId);
       }
     }
 
@@ -155,5 +164,94 @@ export class BooksService {
     });
 
     return createdBook.save();
+  }
+
+  async findMyBooks(sellerId: string, filterDto: BookFilterDto): Promise<PaginatedResult<Book>> {
+    const { page = 1, limit = 20, q } = filterDto;
+    const query: any = { sellerId: new Types.ObjectId(sellerId) };
+
+    if (q?.trim()) {
+      const keyword = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(keyword, 'i');
+      query.$or = [{ title: regex }, { author: regex }];
+    }
+
+    const total = await this.bookModel.countDocuments(query);
+    const skip = (page - 1) * limit;
+
+    const items = await this.bookModel
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('categoryId', 'name slug')
+      .exec();
+
+    return new PaginatedResult(items, total, page, limit);
+  }
+
+  async update(id: string, updateBookDto: UpdateBookDto, sellerId: string): Promise<Book> {
+    const book = await this.bookModel.findOne({ _id: id, sellerId });
+    if (!book) {
+      throw new NotFoundException('Book not found or you do not have permission');
+    }
+
+    // if (updateBookDto.title && updateBookDto.title !== book.title) {
+    //   updateBookDto['slug'] = ... // maybe update slug? It's fine not to for now
+    // }
+
+    const updatedBook = await this.bookModel
+      .findByIdAndUpdate(id, updateBookDto, { new: true })
+      .exec();
+
+    if (!updatedBook) {
+      throw new NotFoundException('Book not found');
+    }
+    return updatedBook;
+  }
+
+  async remove(id: string, sellerId: string): Promise<void> {
+    const book = await this.bookModel.findOne({ _id: id, sellerId });
+    if (!book) {
+      throw new NotFoundException('Book not found or you do not have permission');
+    }
+    await this.bookModel.findByIdAndDelete(id).exec();
+  }
+
+  async findAllForAdmin(filterDto: BookFilterDto): Promise<PaginatedResult<Book>> {
+    const { page = 1, limit = 20, q, categoryId, sort } = filterDto;
+    const query: any = {};
+    if (filterDto.status) {
+      query.status = filterDto.status;
+    }
+    if (q?.trim()) {
+      const keyword = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(keyword, 'i');
+      query.$or = [{ title: regex }, { author: regex }, { tags: regex }];
+    }
+    if (categoryId) {
+      query.categoryId = new Types.ObjectId(categoryId);
+    }
+    let sortOptions: any = { createdAt: -1 };
+    if (sort === 'oldest') sortOptions = { createdAt: 1 };
+    const total = await this.bookModel.countDocuments(query);
+    const skip = (page - 1) * limit;
+    const items = await this.bookModel
+      .find(query)
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limit)
+      .populate('sellerId', 'fullName email')
+      .populate('categoryId', 'name slug')
+      .exec();
+    return new PaginatedResult(items, total, page, limit);
+  }
+
+  async updateStatus(id: string, status: BookStatus): Promise<Book> {
+    const book = await this.bookModel.findByIdAndUpdate(id, { status }, { new: true }).exec();
+    if (!book) {
+      throw new NotFoundException('Book not found');
+    }
+    return book;
   }
 }
