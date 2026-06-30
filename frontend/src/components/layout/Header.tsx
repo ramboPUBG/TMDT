@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import Image from "next/image";
@@ -251,6 +251,26 @@ export function Header() {
                     <UserRound size={16} />
                     Quản lí tài khoản
                   </Link>
+                  {(user?.role === 'seller' || user?.role === 'admin') && (
+                    <Link
+                      href="/seller/dashboard"
+                      onClick={() => setShowAccountMenu(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted"
+                    >
+                      <LayoutGrid size={16} />
+                      Kênh Người Bán
+                    </Link>
+                  )}
+                  {user?.role === 'admin' && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setShowAccountMenu(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 font-medium"
+                    >
+                      <LayoutGrid size={16} />
+                      Quản trị hệ thống
+                    </Link>
+                  )}
                   <button
                     type="button"
                     onClick={handleLogout}

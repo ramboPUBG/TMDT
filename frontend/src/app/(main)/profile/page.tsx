@@ -13,9 +13,11 @@ import {
   Store,
   Trash2,
   UserRound,
+  MessageCircle,
 } from "lucide-react";
 import api from "@/services/api";
 import { useAuthStore, User } from "@/stores/authStore";
+import { useChatStore } from "@/stores/chatStore";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 
@@ -81,6 +83,7 @@ function SectionTitle({
 export default function ProfilePage() {
   const router = useRouter();
   const { hasHydrated, isAuthenticated, user, updateUser } = useAuthStore();
+  const { conversations, fetchConversations } = useChatStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState("");
   const [message, setMessage] = useState("");
@@ -156,7 +159,8 @@ export default function ProfilePage() {
     };
 
     fetchAccount();
-  }, [hasHydrated, isAuthenticated, router, updateUser]);
+    fetchConversations();
+  }, [hasHydrated, isAuthenticated, router, updateUser, fetchConversations]);
 
   const notify = (text: string) => {
     setMessage(text);
@@ -317,14 +321,6 @@ export default function ProfilePage() {
               Đơn mua
             </Button>
           </Link>
-          {isSeller && (
-            <Link href="/product/upload">
-              <Button>
-                <Store size={16} className="mr-2" />
-                Đăng bán sách
-              </Button>
-            </Link>
-          )}
         </div>
       </div>
 
@@ -653,6 +649,8 @@ export default function ProfilePage() {
               )}
             </div>
           </section>
+
+
 
           <section className="rounded-md border border-border bg-white p-6">
             <SectionTitle

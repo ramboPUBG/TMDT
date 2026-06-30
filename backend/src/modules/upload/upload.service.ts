@@ -13,6 +13,14 @@ export class UploadService {
     file: Express.Multer.File,
     folder: string = 'sachcu',
   ): Promise<CloudinaryResponse> {
+    // Return mock URL if Cloudinary is not configured
+    if (!process.env.CLOUDINARY_API_KEY || process.env.CLOUDINARY_API_KEY === 'your-api-key') {
+      return {
+        url: `https://placehold.co/600x400?text=Mock+Image+${Date.now()}`,
+        publicId: `mock-id-${Date.now()}`
+      };
+    }
+
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {

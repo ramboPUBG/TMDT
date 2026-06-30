@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import api from "@/services/api";
+import axios from "axios";
 import { useAuthStore } from "@/stores/authStore";
 
 interface UploadedImage {
@@ -25,20 +26,17 @@ interface CreateBookResponse {
 
 function getErrorMessage(err: unknown, fallback: string) {
   if (typeof err === "object" && err !== null && "response" in err) {
-    const response = (err as { response?: { data?: { message?: string } } }).response;
-    return response?.data?.message || fallback;
+    const response = (err as { response?: { data?: { message?: string | string[] } } }).response;
+    const msg = response?.data?.message;
+    if (Array.isArray(msg)) {
+      return msg[0]; // Return the first validation error
+    }
+    return msg || fallback;
   }
   return fallback;
 }
 
-// Mock Categories
-const mockCategories = [
-  { id: "1", name: "Văn học" },
-  { id: "2", name: "Kinh tế" },
-  { id: "3", name: "Tâm lý - Kỹ năng" },
-  { id: "4", name: "Nuôi dạy con" },
-  { id: "5", name: "Sách thiếu nhi" },
-];
+
 
 export default function UploadBookPage() {
   const router = useRouter();
@@ -59,12 +57,28 @@ export default function UploadBookPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [createdBookId, setCreatedBookId] = useState("");
+
+  const [categories, setCategories] = useState<{ _id: string; name: string }[]>([]);
 
   useEffect(() => {
     if (hasHydrated && !isAuthenticated) {
       router.replace("/login?redirect=/product/upload");
     }
   }, [hasHydrated, isAuthenticated, router]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await api.get("/categories");
+        setCategories((res as any).data || []);
+      } catch (error) {
+        console.error("Lỗi khi tải danh mục", error);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   if (!hasHydrated || !isAuthenticated) {
     return (
@@ -128,13 +142,14 @@ export default function UploadBookPage() {
       const formData = new FormData();
       images.forEach(img => formData.append("files", img));
 
-      const uploadRes = await api.post("/upload/images", formData, {
+      const token = useAuthStore.getState().accessToken;
+      const uploadRes = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/upload/images`, formData, {
         headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }) as UploadImagesResponse;
+          Authorization: `Bearer ${token}`
+        }
+      });
 
-      const uploadedImages = uploadRes.data.map((img) => ({
+      const uploadedImages = uploadRes.data.data.map((img: any) => ({
         url: img.url,
         publicId: img.publicId,
       }));
@@ -154,11 +169,13 @@ export default function UploadBookPage() {
 
       const bookRes = await api.post("/books", bookData) as CreateBookResponse;
 
-      // 3. Redirect to book detail
-      router.push(`/books/${bookRes.data?._id || bookRes._id || ''}`);
+      // 3. Show success modal instead of redirect
+      setCreatedBookId(bookRes.data?._id || bookRes._id || '');
+      setShowSuccessModal(true);
     } catch (err: unknown) {
-      console.error(err);
-      setError(getErrorMessage(err, "Có lỗi xảy ra khi đăng bán sách"));
+      const errMsg = getErrorMessage(err, "Có lỗi xảy ra khi đăng bán sách");
+      setError(errMsg);
+      alert("LỖI: " + errMsg);
     } finally {
       setLoading(false);
     }
@@ -252,8 +269,8 @@ export default function UploadBookPage() {
                     required
                   >
                     <option value="">-- Chọn danh mục --</option>
-                    {mockCategories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    {categories.map(cat => (
+                      <option key={cat._id} value={cat._id}>{cat.name}</option>
                     ))}
                   </select>
                 </div>
@@ -359,6 +376,31 @@ export default function UploadBookPage() {
 
         </form>
       </div>
+
+      {/* SUCCESS MODAL */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 shadow-xl text-center">
+            <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold mb-2 text-foreground">Đăng bán thành công!</h3>
+            <p className="text-muted-foreground text-sm mb-6">
+              Sách của bạn đã được gửi lên hệ thống và đang chờ Admin duyệt.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button onClick={() => router.push("/seller/dashboard")}>
+                Về kênh Người bán
+              </Button>
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Đăng thêm sách khác
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

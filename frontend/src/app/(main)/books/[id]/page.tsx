@@ -109,7 +109,13 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1 w-full text-xs">💬 Chat ngay</Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1 w-full text-xs"
+                  onClick={() => router.push(`/chat?userId=${book.sellerId?._id}`)}
+                >
+                  💬 Chat ngay
+                </Button>
                 <Button variant="outline" className="flex-1 w-full text-xs border-primary text-primary hover:bg-primary/5">🏪 Xem shop</Button>
               </div>
             </div>
