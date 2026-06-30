@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDebounceValue } from "usehooks-ts";
-import { LayoutGrid, LogOut, UserRound } from "lucide-react";
+import { LayoutGrid, LogOut, UserRound, Package } from "lucide-react";
 import { useCartStore } from "@/stores/cartStore";
 import { useAuthStore } from "@/stores/authStore";
 import api from "@/services/api";
@@ -220,6 +220,15 @@ export function Header() {
               </span>
             )}
           </Link>
+
+          <Link
+            href="/profile/orders"
+            title="Đơn hàng đã mua"
+            className="text-muted-foreground hover:text-primary relative"
+          >
+            <Package size={22} />
+          </Link>
+
           <div className="h-6 w-px bg-border" />
 
           {mounted && isAuthenticated ? (
@@ -251,6 +260,7 @@ export function Header() {
                     <UserRound size={16} />
                     Quản lí tài khoản
                   </Link>
+
                   {(user?.role === 'seller' || user?.role === 'admin') && (
                     <Link
                       href="/seller/dashboard"
