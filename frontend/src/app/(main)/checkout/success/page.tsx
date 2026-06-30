@@ -10,6 +10,14 @@ function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const method = searchParams.get("method") || "COD";
   const amount = Number(searchParams.get("amount") || 0);
+
+  // VNPAY parameters
+  const vnp_ResponseCode = searchParams.get("vnp_ResponseCode");
+  const vnp_Amount = Number(searchParams.get("vnp_Amount") || 0) / 100;
+  
+  const isVnpay = vnp_ResponseCode !== null;
+  const isVnpaySuccess = vnp_ResponseCode === "00";
+
   const [transferCode] = useState(() => Math.floor(1000 + Math.random() * 9000));
 
   return (
@@ -17,15 +25,52 @@ function CheckoutSuccessContent() {
       <div className="container mx-auto px-4 flex flex-col items-center">
         
         <div className="bg-white p-8 md:p-12 rounded-3xl border border-border max-w-2xl w-full text-center shadow-sm">
-          <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-6">
-            ✓
-          </div>
-          <h1 className="text-3xl font-bold text-foreground mb-4">Đặt hàng thành công!</h1>
-          <p className="text-muted-foreground mb-8 text-lg">
-            Cảm ơn bạn đã mua sắm tại SachCu. Đơn hàng của bạn đã được ghi nhận và đang chờ xử lý.
-          </p>
+          {/* Icon state */}
+          {isVnpay ? (
+            isVnpaySuccess ? (
+              <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-6">
+                ✓
+              </div>
+            ) : (
+              <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-6">
+                ✕
+              </div>
+            )
+          ) : (
+            <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-6">
+              ✓
+            </div>
+          )}
 
-          {method === "BANK_TRANSFER" && (
+          {/* Heading state */}
+          {isVnpay ? (
+            isVnpaySuccess ? (
+              <h1 className="text-3xl font-bold text-foreground mb-4">Thanh toán thành công!</h1>
+            ) : (
+              <h1 className="text-3xl font-bold text-red-600 mb-4">Thanh toán thất bại!</h1>
+            )
+          ) : (
+            <h1 className="text-3xl font-bold text-foreground mb-4">Đặt hàng thành công!</h1>
+          )}
+
+          {/* Description state */}
+          {isVnpay ? (
+            isVnpaySuccess ? (
+              <p className="text-muted-foreground mb-8 text-lg">
+                Cảm ơn bạn đã mua sách tại SachCu. Đơn hàng của bạn đã được thanh toán online thành công qua VNPAY với số tiền <strong>{formatPrice(vnp_Amount)}</strong> và đang chờ xử lý giao hàng.
+              </p>
+            ) : (
+              <p className="text-muted-foreground mb-8 text-lg">
+                Giao dịch thanh toán qua cổng VNPAY của bạn không thành công hoặc đã bị hủy (Mã phản hồi: {vnp_ResponseCode}). Vui lòng truy cập lịch sử đơn hàng để thử thanh toán lại hoặc liên hệ hỗ trợ.
+              </p>
+            )
+          ) : (
+            <p className="text-muted-foreground mb-8 text-lg">
+              Cảm ơn bạn đã mua sắm tại SachCu. Đơn hàng của bạn đã được ghi nhận và đang chờ xử lý.
+            </p>
+          )}
+
+          {!isVnpay && method === "BANK_TRANSFER" && (
             <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 text-left mb-8">
               <h2 className="text-lg font-bold text-primary mb-4 flex items-center gap-2">
                 💳 Hướng dẫn chuyển khoản
@@ -57,7 +102,7 @@ function CheckoutSuccessContent() {
             </div>
           )}
 
-          {method === "COD" && (
+          {!isVnpay && method === "COD" && (
             <div className="bg-muted/50 rounded-2xl p-6 mb-8 text-sm text-muted-foreground">
               Bạn đã chọn hình thức <strong>Thanh toán khi nhận hàng (COD)</strong>. Vui lòng chuẩn bị sẵn số tiền <strong className="text-foreground">{formatPrice(amount)}</strong> khi nhân viên giao hàng liên hệ.
             </div>
