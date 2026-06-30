@@ -104,10 +104,16 @@ export default function CheckoutPage() {
         paymentMethod
       };
 
-      await api.post("/orders", payload);
+      const res = await api.post("/orders", payload) as any;
       
       // Clean up session and go to success
       localStorage.removeItem("checkout_session");
+
+      if (paymentMethod === "VNPAY" && res.paymentUrl) {
+        window.location.href = res.paymentUrl;
+        return;
+      }
+      
       router.push(`/checkout/success?method=${paymentMethod}&amount=${totalPrice}`);
 
     } catch (err: unknown) {
@@ -167,6 +173,13 @@ export default function CheckoutPage() {
                   <div>
                     <div className="font-bold">Chuyển khoản ngân hàng</div>
                     <div className="text-sm text-muted-foreground">Chuyển khoản qua số tài khoản của Sàn. Đơn hàng sẽ được xử lý ngay sau khi nhận được tiền.</div>
+                  </div>
+                </label>
+                <label className={`flex items-center gap-3 p-4 border rounded-xl cursor-pointer ${paymentMethod === 'VNPAY' ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                  <input type="radio" name="payment" value="VNPAY" checked={paymentMethod === 'VNPAY'} onChange={() => setPaymentMethod('VNPAY')} className="w-4 h-4 text-primary" />
+                  <div>
+                    <div className="font-bold">Thanh toán qua VNPAY (Thẻ ATM / QR Code)</div>
+                    <div className="text-sm text-muted-foreground">Thanh toán trực tuyến nhanh chóng, an toàn qua cổng thanh toán VNPAY.</div>
                   </div>
                 </label>
               </div>

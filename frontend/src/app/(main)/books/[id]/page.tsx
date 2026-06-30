@@ -88,7 +88,7 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
               </div>
             </div>
             
-            <ReviewsSection />
+            <ReviewsSection bookId={id} />
           </div>
           
           <div className="lg:col-span-4 flex flex-col gap-6">

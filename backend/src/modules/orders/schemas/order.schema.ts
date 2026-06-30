@@ -6,6 +6,7 @@ export type OrderDocument = Order & Document;
 export enum PaymentMethod {
   COD = 'COD',
   BANK_TRANSFER = 'BANK_TRANSFER',
+  VNPAY = 'VNPAY',
 }
 
 export enum PaymentStatus {

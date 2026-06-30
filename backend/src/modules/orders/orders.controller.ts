@@ -6,10 +6,14 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { VnpayService } from '../payment/vnpay.service';
 
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly vnpayService: VnpayService,
+  ) {}
 
   @Get('my')
   @UseGuards(JwtAuthGuard)
@@ -53,6 +57,15 @@ export class OrdersController {
       createOrderDto,
       userId,
     );
+    if (createOrderDto.paymentMethod === 'VNPAY') {
+      const paymentUrl = await this.vnpayService.createPaymentUrl(orders as any, '127.0.0.1');
+      return {
+        success: true,
+        message: 'Đặt hàng thành công, vui lòng thực hiện thanh toán',
+        paymentUrl,
+        data: orders,
+      };
+    }
     return {
       success: true,
       message: 'Đặt hàng thành công',

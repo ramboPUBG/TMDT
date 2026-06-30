@@ -17,6 +17,9 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { ReportsModule } from './modules/reports/reports.module';
 import { ReturnsModule } from './modules/returns/returns.module';
 import { StatisticsModule } from './modules/statistics/statistics.module';
+import { WalletModule } from './modules/wallet/wallet.module';
+import { WithdrawalModule } from './modules/withdrawal/withdrawal.module';
+import { PaymentModule } from './modules/payment/payment.module';
 
 @Module({
   imports: [
@@ -59,6 +62,9 @@ import { StatisticsModule } from './modules/statistics/statistics.module';
     ReportsModule,
     ReturnsModule,
     StatisticsModule,
+    WalletModule,
+    WithdrawalModule,
+    PaymentModule,
   ],
 })
 export class AppModule {}

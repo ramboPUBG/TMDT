@@ -314,14 +314,7 @@ export default function ProfilePage() {
             Cập nhật hồ sơ khách hàng, địa chỉ nhận hàng và thông tin bán sách.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/profile/orders">
-            <Button variant="outline">
-              <Package size={16} className="mr-2" />
-              Đơn mua
-            </Button>
-          </Link>
-        </div>
+
       </div>
 
       {(message || error) && (
