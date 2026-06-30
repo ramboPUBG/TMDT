@@ -54,6 +54,60 @@ export default function MyOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Review states
+  const [reviewedBookIds, setReviewedBookIds] = useState<Set<string>>(new Set());
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<{
+    bookId: string;
+    title: string;
+    orderId: string;
+  } | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+
+  const handleOpenReviewModal = (bookId: string, title: string, orderId: string) => {
+    setSelectedBook({ bookId, title, orderId });
+    setReviewRating(5);
+    setReviewComment("");
+    setReviewError("");
+    setIsReviewModalOpen(true);
+  };
+
+  const handleCloseReviewModal = () => {
+    setIsReviewModalOpen(false);
+    setSelectedBook(null);
+  };
+
+  const handleSubmitReview = async () => {
+    if (!selectedBook) return;
+
+    try {
+      setSubmittingReview(true);
+      setReviewError("");
+      await api.post("/reviews", {
+        bookId: selectedBook.bookId,
+        orderId: selectedBook.orderId,
+        rating: reviewRating,
+        comment: reviewComment,
+      });
+
+      // Add to reviewed set
+      setReviewedBookIds((prev) => {
+        const next = new Set(prev);
+        next.add(selectedBook.bookId);
+        return next;
+      });
+
+      handleCloseReviewModal();
+    } catch (err: any) {
+      setReviewError(getErrorMessage(err, "Không thể gửi đánh giá"));
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   useEffect(() => {
     if (!isAuthenticated) {
       router.replace("/login?redirect=/profile/orders");
@@ -72,7 +126,20 @@ export default function MyOrdersPage() {
       }
     };
 
+    const fetchReviewedBooks = async () => {
+      try {
+        const res = (await api.get("/reviews/my")) as any;
+        if (res && res.data) {
+          const ids = new Set<string>(res.data.map((r: any) => r.bookId));
+          setReviewedBookIds(ids);
+        }
+      } catch (err) {
+        console.error("Failed to fetch reviewed books", err);
+      }
+    };
+
     fetchOrders();
+    fetchReviewedBooks();
   }, [isAuthenticated, router]);
 
   return (
@@ -111,13 +178,54 @@ export default function MyOrdersPage() {
               </span>
             </div>
 
-            <ul className="space-y-2 mb-4">
+            {/* Order Items with Image and Review Button */}
+            <div className="space-y-4 mb-4">
               {order.items.map((item, i) => (
-                <li key={i} className="text-sm text-foreground">
-                  {item.title} × {item.quantity} — {formatPrice(item.price * item.quantity)}
-                </li>
+                <div key={i} className="flex items-center justify-between gap-4 py-3 border-b border-gray-50 last:border-0 last:pb-0">
+                  <div className="flex items-center gap-3">
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="w-12 h-12 object-cover rounded-lg border border-border"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg border border-border bg-muted flex items-center justify-center text-xs text-muted-foreground font-medium">
+                        Ảnh
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium text-foreground line-clamp-1">{item.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatPrice(item.price)} × {item.quantity}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm font-semibold text-foreground">
+                      {formatPrice(item.price * item.quantity)}
+                    </span>
+                    {order.orderStatus === "DELIVERED" && (
+                      <div className="min-w-[90px] text-right">
+                        {reviewedBookIds.has(item.bookId) ? (
+                          <span className="text-xs text-green-600 bg-green-50 px-2.5 py-1 rounded-full font-medium">
+                            Đã đánh giá
+                          </span>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenReviewModal(item.bookId, item.title, order._id)}
+                          >
+                            Đánh giá
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
 
             <div className="flex justify-between items-center pt-4 border-t border-border">
               <span className="text-sm text-muted-foreground">
@@ -128,6 +236,73 @@ export default function MyOrdersPage() {
           </div>
         ))}
       </div>
+
+      {/* Review Modal */}
+      {isReviewModalOpen && selectedBook && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl border border-border animate-in fade-in zoom-in-95 duration-150">
+            <h3 className="text-xl font-bold text-foreground mb-2">Đánh giá sản phẩm</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Bạn đang đánh giá sách: <span className="font-semibold text-foreground">{selectedBook.title}</span>
+            </p>
+
+            <div className="space-y-6">
+              {/* Star Rating Selection */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Chất lượng sản phẩm (1 - 5 sao)
+                </label>
+                <div className="flex gap-2 text-3xl">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewRating(star)}
+                      className={`transition-colors duration-150 ${
+                        star <= reviewRating ? "text-amber-400" : "text-gray-200 hover:text-amber-200"
+                      }`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Comment Text Area */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Bình luận & Đánh giá chi tiết
+                </label>
+                <textarea
+                  className="w-full min-h-[100px] p-3 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm placeholder:text-muted-foreground bg-transparent"
+                  placeholder="Chia sẻ trải nghiệm của bạn về cuốn sách (độ mới, đóng gói, nội dung...)"
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                />
+              </div>
+
+              {reviewError && <p className="text-xs text-red-500">{reviewError}</p>}
+
+              {/* Modal Actions */}
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={handleCloseReviewModal}
+                  disabled={submittingReview}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  onClick={handleSubmitReview}
+                  disabled={submittingReview}
+                >
+                  {submittingReview ? "Đang gửi..." : "Gửi đánh giá"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
